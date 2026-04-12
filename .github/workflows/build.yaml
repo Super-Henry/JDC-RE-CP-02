@@ -11,8 +11,8 @@ on:
     - cron: "0 */3 * * *"
 
 env:
-  REMOTE_REPOSITORY: openwrt/openwrt
-  REMOTE_BRANCH: main
+  REMOTE_REPOSITORY: Super-Henry/openwrt
+  REMOTE_BRANCH: v25.12.2
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
   RELEASE_PREFIX: main
