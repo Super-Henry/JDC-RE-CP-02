@@ -209,6 +209,5 @@ index fedb31571a..eaec1a7623 100644
  	xiaomi,redmi-router-ac2100|\
 +	jdcloud,luban|\
  	z-router,zr-2660|\
- 	z-router,zr-2662|\
  	zyxel,wsm20)
  		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "wan"
