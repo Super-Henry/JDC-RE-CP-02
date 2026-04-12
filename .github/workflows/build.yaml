@@ -12,7 +12,7 @@ on:
 
 env:
   REMOTE_REPOSITORY: Super-Henry/openwrt
-  REMOTE_BRANCH: v25.12.2
+  REMOTE_BRANCH: v25.12
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
   RELEASE_PREFIX: main
