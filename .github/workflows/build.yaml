@@ -12,10 +12,10 @@ on:
 
 env:
   REMOTE_REPOSITORY: Super-Henry/openwrt
-  REMOTE_BRANCH: openwrt-25.12
+  REMOTE_BRANCH: v25.12.2
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
-  RELEASE_PREFIX: main
+  RELEASE_PREFIX: stable
 
 jobs:
   check_commits:
@@ -30,7 +30,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/commits/${{ env.REMOTE_BRANCH }}" --jq .sha)
+          latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/git/ref/tags/${{ env.REMOTE_BRANCH }}" --jq .object.sha)
           release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body 2>/dev/null || echo "")
 
           new_commits=$([[ "$release_body" == *"$latest_sha"* ]] && echo "false" || echo "true")
@@ -52,6 +52,7 @@ jobs:
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
           ref: ${{ env.REMOTE_BRANCH }}
+          fetch-tags: true
 
       - name: Checkout current repository
         uses: actions/checkout@v4
@@ -87,7 +88,7 @@ jobs:
           df -h
           mv builder_repo/${{ env.CONFIG_FILE }} .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
-          echo "CONFIG_PACKAGE_luci-theme-argon=y=y" >> .config
+          echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           make defconfig -j$(nproc)
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
