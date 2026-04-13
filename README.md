@@ -28,4 +28,4 @@ UBoot刷好之后，按住RESET键插电，进入UBoot的web刷机界面刷入�
 
 | 微信支付  | 支付宝 |
 | ------------- | ------------- |
-| ![](images/wx.png)  | ![](images/ali.png) |
+| ![](images/)  | ![](images/) |
