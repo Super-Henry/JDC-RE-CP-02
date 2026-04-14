@@ -15,7 +15,7 @@ env:
   REMOTE_BRANCH: main
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
-  RELEASE_PREFIX: main
+  RELEASE_PREFIX: development
 
 jobs:
   check_commits:
