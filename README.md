@@ -9,7 +9,7 @@
 
 ## 特点
 
-- [OpenWRT](https://github.com/openwrt/openwrt)官方源码，和设备专用补丁
+- [OpenWRT](https://github.com/Super-Henry/openwrt)官方源码，和设备专用补丁
 - 全功能OpenSSH
 - 编译全部KMOD安装包，确保安装软件不缺依赖，KMOD安装包在压缩包文件snapshots.tar.gz中
 
