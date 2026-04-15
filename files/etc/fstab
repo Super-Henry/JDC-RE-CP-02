@@ -1,1 +1,2 @@
 /dev/mmcblk0p5    none    swap    sw    0 0
+/dev/mmcblk0p6    /overlay    ext4    defaults    0 0
