@@ -6,12 +6,7 @@ config global
 	option delay_root '5'
 	option check_fs '0'
 
-# swap 分区 p5
-config swap
-	option device '/dev/mmcblk0p5'
-	option enabled '1'
-
-# overlay 分区 p6
+# 1. 【第一位】overlay 系统分区 (必须最前面！)
 config mount
 	option target '/overlay'
 	option device '/dev/mmcblk0p6'
@@ -19,3 +14,26 @@ config mount
 	option fstype 'ext4'
 	option options 'rw,sync'
 	option enabled_fsck '1'
+
+# 2. 【第二位】p3 数据分区 (data共享)
+config mount
+	option target '/mnt/mmcblk0p3'
+	option device '/dev/mmcblk0p3'
+	option enabled '1'
+	option fstype 'ext4'
+	option options 'rw,sync,noatime'
+	option enabled_fsck '0'
+
+# 3. 【第三位】p4 数据分区 (files共享)
+config mount
+	option target '/mnt/samba'
+	option device '/dev/mmcblk0p4'
+	option enabled '1'
+	option fstype 'ext4'
+	option options 'rw,sync,noatime'
+	option enabled_fsck '0'
+
+# 4. 【最后一位】swap 交换分区 (必须放最后！)
+config swap
+	option device '/dev/mmcblk0p5'
+	option enabled '1'
