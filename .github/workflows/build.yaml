@@ -1,4 +1,4 @@
-name: Build OpenWrt - Henry Custom
+name: Build OpenWrt for specific target and release
 
 permissions:
   contents: write
@@ -6,18 +6,16 @@ permissions:
 
 on:
   workflow_dispatch:
+  #push:
   schedule:
     - cron: "0 */3 * * *"
 
 env:
-  REMOTE_REPOSITORY: Super-Henry/openwrt
-  REMOTE_BRANCH: development-version
+  REMOTE_REPOSITORY: openwrt/openwrt
+  REMOTE_BRANCH: main
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
-  RELEASE_PREFIX: development
-  # 锁定内核版本 + 禁止自动升级核心组件（核心修复）
-  FORCE_UNSAFE_CONFIGURE: 1
-  ALLOW_BUILD_TOOLCHAIN_CHANGE: 0
+  RELEASE_PREFIX: main
 
 jobs:
   check_commits:
@@ -34,7 +32,9 @@ jobs:
         run: |
           latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/commits/${{ env.REMOTE_BRANCH }}" --jq .sha)
           release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body 2>/dev/null || echo "")
+
           new_commits=$([[ "$release_body" == *"$latest_sha"* ]] && echo "false" || echo "true")
+
           echo "new_commits=$new_commits" >> "$GITHUB_OUTPUT"
           echo "latest_commit_sha=$latest_sha" >> "$GITHUB_OUTPUT"
 
@@ -47,12 +47,11 @@ jobs:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev python3-setuptools rsync swig unzip zlib1g-dev file wget
         
-      - name: Checkout remote repository (固定commit，防止内核漂移)
+      - name: Checkout remote repository
         uses: actions/checkout@v4
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
-          ref: ${{ needs.check_commits.outputs.latest_commit_sha }}
-          fetch-depth: 1
+          ref: ${{ env.REMOTE_BRANCH }}
 
       - name: Checkout current repository
         uses: actions/checkout@v4
@@ -69,14 +68,11 @@ jobs:
             done
           fi
 
-      # 【关键修复】一次性更新安装所有feeds，只执行一次，不重复更新
-      - name: Update and install feeds (一次性完成，防止版本错乱)
+      - name: Update and install feeds
         run: |
           df -h
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-          
-          # 安装你的自定义插件（保持不变）
+          #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
+          ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/feeds/luci/luci-app-passwall2
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git package/utils/passwall2
           git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
@@ -86,63 +82,56 @@ jobs:
           #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
 
-      # ==========================
-      # ✅【修复 1：正确复制 files】
-      # ==========================
       - name: Setup configuration and custom files
         run: |
           df -h
           mv builder_repo/${{ env.CONFIG_FILE }} .config
-          # 修复你写错的配置行
-          echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
-          
-          # 【核心修复】强制锁定内核，不允许自动修改
-          make defconfig
-          
-          # 【正确方法】直接复制整个 files 目录，保证 100% 进固件
-          cp -r builder_repo/files .
-          ls -la files/
-
-      # ==========================
-      # ❌【修复 2：删除危险 overlay 挂载】
-      # ==========================
-      # - name: Use /mnt for more disk space
-      #   run: |
-      #     sudo mkdir -p /mnt/upper /mnt/work && sudo chmod a+w /mnt/upper
-      #     sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd)
-      #     df -h
-
-      - name: Build cache
+          echo "CONFIG_PACKAGE_luci-theme-argon=y=y" >> .config
+          make defconfig -j$(nproc)
+          mkdir -p ${{ env.CUSTOM_FILES_PATH }}
+          [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
+   
+      - name: Use /mnt for more disk space
+        run: |
+          sudo mkdir -p /mnt/upper /mnt/work && sudo chmod a+w /mnt/upper
+          sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd)
+          df -h
+                 
+      - name: cache
         uses: actions/cache@v4
+        if: always()
         with:
-          key: openwrt-${{ needs.check_commits.outputs.latest_commit_sha }}
+          key: openwrt-build-${{ needs.check_commits.outputs.latest_commit_sha }}
+          restore-keys: |
+            openwrt-build
           path: |
+            build_dir
             dl
             staging_dir
-            build_dir
             tmp
 
-      # 【关键修复】删除旧缓存逻辑：只保留当前commit缓存，不删全部，防止编译污染
-      - name: Prune old caches
+      - name: Clean up old caches
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api repos/${{ github.repository }}/actions/caches --paginate --jq '.actions_caches[] | .key' | grep -v '${{ needs.check_commits.outputs.latest_commit_sha }}' | while read key; do
-            gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" &>/dev/null || true
+          gh api repos/${{ github.repository }}/actions/caches --paginate --jq '.actions_caches[0:] | .[] |.key' | while read key; do
+            echo "Removing old cache $key ..."
+            gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" 2>/dev/null || true
           done
 
       - name: Download source
         run: |
           df -h
-          make download -j$(nproc) V=s
+          ./scripts/feeds update -a
+          make download -j$(nproc)
           
-      # 【核心修复】编译命令：禁止自动调整toolchain/内核版本
       - name: Build firmware
         run: |
           df -h
-          make -j$(nproc) IGNORE_ERRORS=1 BUILD_LOG=1 || make -j1 V=s IGNORE_ERRORS=1
+          make check -j$(nproc) FIXUP=1 V=s
+          make -j$(nproc) || make -j1 V=s  # Retry single-threaded on failure
           tar cvzf bin/targets/ramips/mt7621/snapshots.tar.gz -C bin packages/mipsel_24kc targets/ramips/mt7621/packages
         
       - name: Upload artifacts
