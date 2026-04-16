@@ -1,4 +1,4 @@
-name: Build OpenWrt for specific target and release
+name: Build OpenWrt - Henry Custom
 
 permissions:
   contents: write
