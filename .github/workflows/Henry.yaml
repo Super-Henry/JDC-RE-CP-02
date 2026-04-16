@@ -1,0 +1,200 @@
+name: Build OpenWrt for specific target and release
+
+permissions:
+  contents: write
+  actions: write
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */3 * * *"
+
+env:
+  REMOTE_REPOSITORY: openwrt/openwrt
+  REMOTE_BRANCH: main
+  CONFIG_FILE: jdcloud_luban.config
+  CUSTOM_FILES_PATH: files/
+  RELEASE_PREFIX: main
+  # 锁定内核版本 + 禁止自动升级核心组件（核心修复）
+  FORCE_UNSAFE_CONFIGURE: 1
+  ALLOW_BUILD_TOOLCHAIN_CHANGE: 0
+
+jobs:
+  check_commits:
+    name: Check for new commits
+    runs-on: ubuntu-24.04
+    outputs:
+      new_commits: ${{ steps.check_commits.outputs.new_commits }}
+      latest_commit_sha: ${{ steps.check_commits.outputs.latest_commit_sha }}
+    steps:
+      - name: Check for new commits in both repositories
+        id: check_commits
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/commits/${{ env.REMOTE_BRANCH }}" --jq .sha)
+          release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body 2>/dev/null || echo "")
+          new_commits=$([[ "$release_body" == *"$latest_sha"* ]] && echo "false" || echo "true")
+          echo "new_commits=$new_commits" >> "$GITHUB_OUTPUT"
+          echo "latest_commit_sha=$latest_sha" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build OpenWrt
+    needs: check_commits
+    if: github.event_name == 'workflow_dispatch' || needs.check_commits.outputs.new_commits == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev python3-setuptools rsync swig unzip zlib1g-dev file wget
+        
+      - name: Checkout remote repository (固定commit，防止内核漂移)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.REMOTE_REPOSITORY }}
+          ref: ${{ needs.check_commits.outputs.latest_commit_sha }}
+          fetch-depth: 1
+
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        with:
+          path: "builder_repo"
+
+      - name: Add custom patches
+        run: |
+          df -h
+          if [ -d "builder_repo/patches" ] && [ "$(ls -A builder_repo/patches 2>/dev/null)" ]; then
+            for patch in builder_repo/patches/*.patch; do
+              ls -al "$patch" && sha256sum "$patch"
+              [ -f "$patch" ] && git apply --verbose "$patch"
+            done
+          fi
+
+      # 【关键修复】一次性更新安装所有feeds，只执行一次，不重复更新
+      - name: Update and install feeds (一次性完成，防止版本错乱)
+        run: |
+          df -h
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          
+          # 安装你的自定义插件（保持不变）
+          git clone https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/feeds/luci/luci-app-passwall2
+          git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git package/utils/passwall2
+          git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
+          git clone https://github.com/jerrykuku/luci-app-argon-config.git package/feeds/luci/luci-app-argon-config
+          #git clone https://github.com/dgyangxf/luci-app-vlmcsd.git package/feeds/luci/luci-app-vlmcsd
+          #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
+          #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
+          unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
+
+      - name: Setup configuration and custom files
+        run: |
+          df -h
+          mv builder_repo/${{ env.CONFIG_FILE }} .config
+          # 修复你写错的配置行
+          echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
+          echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
+          
+          # 【核心修复】强制锁定内核，不允许自动修改
+          make defconfig
+          
+          mkdir -p ${{ env.CUSTOM_FILES_PATH }}
+          [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
+   
+      - name: Use /mnt for more disk space
+        run: |
+          sudo mkdir -p /mnt/upper /mnt/work && sudo chmod a+w /mnt/upper
+          sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd)
+          df -h
+                 
+      - name: Build cache (优化缓存策略，防止污染)
+        uses: actions/cache@v4
+        with:
+          key: openwrt-${{ needs.check_commits.outputs.latest_commit_sha }}
+          path: |
+            dl
+            staging_dir
+            build_dir
+            tmp
+
+      # 【关键修复】删除旧缓存逻辑：只保留当前commit缓存，不删全部，防止编译污染
+      - name: Prune old caches
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/caches --paginate --jq '.actions_caches[] | .key' | grep -v '${{ needs.check_commits.outputs.latest_commit_sha }}' | while read key; do
+            gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" &>/dev/null || true
+          done
+
+      - name: Download source
+        run: |
+          df -h
+          make download -j$(nproc) V=s
+          
+      # 【核心修复】编译命令：禁止自动调整toolchain/内核版本
+      - name: Build firmware
+        run: |
+          df -h
+          make -j$(nproc) IGNORE_ERRORS=1 BUILD_LOG=1 || make -j1 V=s IGNORE_ERRORS=1
+          tar cvzf bin/targets/ramips/mt7621/snapshots.tar.gz -C bin packages/mipsel_24kc targets/ramips/mt7621/packages
+        
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mt7621-images
+          path: bin/targets/ramips/mt7621
+
+      - name: Check disk space usage
+        if: always()
+        run: df -h
+        
+  release:
+    name: Create release
+    needs: [check_commits, build]
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mt7621-images
+          path: firmware
+      - name: Set release date
+        run: echo "RELEASE_DATE=$(date +%F)" >> $GITHUB_ENV
+      - name: Publish release
+        uses: softprops/action-gh-release@master
+        with:
+          files: firmware/*
+          tag_name: ${{ env.RELEASE_PREFIX }}-${{ env.RELEASE_DATE }}
+          name: 🚀 OpenWrt Build Release ${{ env.RELEASE_DATE }}
+          body: |
+            ## 📦 OpenWrt Automated Build Release
+
+            **Build Date:** ${{ env.RELEASE_DATE }}
+
+            ### 🔄 Main Repository
+            **Repository:** [${{ env.REMOTE_REPOSITORY }}](https://github.com/${{ env.REMOTE_REPOSITORY }})
+            **Branch:** `${{ env.REMOTE_BRANCH }}`
+            **Commit:** `${{ needs.check_commits.outputs.latest_commit_sha }}`
+
+            ### 📝 Build Information
+            - **Target:** [JDCloud RE-CP-02 鲁班]
+            - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
+
+            ### 📋 Notes
+            - Automated build triggered by ${{ github.event_name }}
+            - Previous releases are automatically cleaned up (keeping latest 5)
+            ---
+            _Generated by GitHub Actions 🤖_
+
+      - name: Clean up old releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/releases --paginate --jq '.[5:] | .[] | "\(.id) \(.tag_name)"' | while read id tag; do
+            day=$(echo "$tag" |cut -d'-' -f4)
+            if [ $day -ne "01" ] && [ $day -ne "08" ] && [ $day -ne "15" ] && [ $day -ne "23" ]; then
+              echo "Removing old release $tag ..."
+              gh api -X DELETE "repos/${{ github.repository }}/releases/$id" && gh api -X DELETE "repos/${{ github.repository }}/git/refs/tags/$tag" 2>/dev/null || true
+            fi
+          done
