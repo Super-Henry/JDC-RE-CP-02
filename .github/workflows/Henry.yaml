@@ -81,6 +81,7 @@ jobs:
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git package/utils/passwall2
           git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
           git clone https://github.com/jerrykuku/luci-app-argon-config.git package/feeds/luci/luci-app-argon-config
+	  git clone https://github.com/vernesong/OpenClash.git package/luci-app-openclash
           #git clone https://github.com/dgyangxf/luci-app-vlmcsd.git package/feeds/luci/luci-app-vlmcsd
           #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
           #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
@@ -108,8 +109,30 @@ jobs:
           mv builder_repo/${{ env.CONFIG_FILE }} .config
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
-          
-          # 【核心修复】强制锁定内核，不允许自动修改
+          echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
+
+          # Passwall2 核心依赖 (M方式手动安装)
+          echo "CONFIG_PACKAGE_kmod-tun=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-inet-diag=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-nf-tproxy=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-nf-conntrack=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-nf-conntrack6=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-ipt-tproxy=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-ipt-nat=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-ipt-nat6=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-crypto-aes=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-crypto-sha256=m" >> .config
+          echo "CONFIG_PACKAGE_ipset=m" >> .config
+          echo "CONFIG_PACKAGE_iptables-mod-tproxy=m" >> .config
+          echo "CONFIG_PACKAGE_iptables-mod-extra=m" >> .config
+          echo "CONFIG_PACKAGE_libcap=m" >> .config
+          echo "CONFIG_PACKAGE_bash=m" >> .config
+          echo "CONFIG_PACKAGE_ca-bundle=m" >> .config
+          echo "CONFIG_PACKAGE_unzip=m" >> .config
+          echo "CONFIG_PACKAGE_dnsmasq-full=y" >> .config
+          echo "CONFIG_PACKAGE_dnsmasq=n" >> .config
+
           make defconfig
 
       # ==========================
