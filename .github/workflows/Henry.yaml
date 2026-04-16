@@ -96,6 +96,12 @@ jobs:
           sudo cp -a builder_repo/files/. /mnt/upper/files/
           ls -la /mnt/upper/files/
 
+      # ==========================
+      # 【🔥 只加这一句：彻底清理旧内核】
+      # ==========================
+      - name: FULL CLEAN - 抛弃旧缓存，强制更新内核
+        run: make distclean
+
       - name: Setup configuration and custom files
         run: |
           df -h
@@ -124,15 +130,18 @@ jobs:
           ls -la files/ || true
           find files/ 2>/dev/null | head -20
 
-      - name: Build cache
-        uses: actions/cache@v4
-        with:
-          key: openwrt-${{ needs.check_commits.outputs.latest_commit_sha }}
-          path: |
-            dl
-            staging_dir
-            build_dir
-            tmp
+      # ==========================
+      # 【🔥 临时关闭缓存，让内核这次彻底更新】
+      # ==========================
+      # - name: Build cache
+      #   uses: actions/cache@v4
+      #   with:
+      #     key: openwrt-${{ needs.check_commits.outputs.latest_commit_sha }}
+      #     path: |
+      #       dl
+      #       staging_dir
+      #       build_dir
+      #       tmp
 
       # 【关键修复】删除旧缓存逻辑：只保留当前commit缓存，不删全部，防止编译污染
       - name: Prune old caches
