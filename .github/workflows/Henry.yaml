@@ -101,7 +101,7 @@ jobs:
           echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config # 蒲公英
 
           # 新增你要的依赖
-          echo "CONFIG_PACKAGE_libopenssl1.1=m" >> .config
+          echo "CONFIG_PACKAGE_libopenssl=y" >> .config
           echo "CONFIG_PACKAGE_kmod-ipt-nat=m" >> .config
 
           # Passwall2 核心依赖 (M方式手动安装)
