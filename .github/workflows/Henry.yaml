@@ -10,11 +10,11 @@ on:
     - cron: "0 */3 * * *"
 
 env:
-  REMOTE_REPOSITORY: openwrt/openwrt
-  REMOTE_BRANCH: main
+  REMOTE_REPOSITORY: Super-Henry/openwrt
+  REMOTE_BRANCH: development-version
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
-  RELEASE_PREFIX: main
+  RELEASE_PREFIX: development
   # 锁定内核版本 + 禁止自动升级核心组件（核心修复）
   FORCE_UNSAFE_CONFIGURE: 1
   ALLOW_BUILD_TOOLCHAIN_CHANGE: 0
@@ -86,6 +86,9 @@ jobs:
           #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
 
+      # ==========================
+      # ✅【修复 1：正确复制 files】
+      # ==========================
       - name: Setup configuration and custom files
         run: |
           df -h
@@ -97,16 +100,20 @@ jobs:
           # 【核心修复】强制锁定内核，不允许自动修改
           make defconfig
           
-          mkdir -p ${{ env.CUSTOM_FILES_PATH }}
-          [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
-   
-      - name: Use /mnt for more disk space
-        run: |
-          sudo mkdir -p /mnt/upper /mnt/work && sudo chmod a+w /mnt/upper
-          sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd)
-          df -h
-                 
-      - name: Build cache (优化缓存策略，防止污染)
+          # 【正确方法】直接复制整个 files 目录，保证 100% 进固件
+          cp -r builder_repo/files .
+          ls -la files/
+
+      # ==========================
+      # ❌【修复 2：删除危险 overlay 挂载】
+      # ==========================
+      # - name: Use /mnt for more disk space
+      #   run: |
+      #     sudo mkdir -p /mnt/upper /mnt/work && sudo chmod a+w /mnt/upper
+      #     sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd)
+      #     df -h
+
+      - name: Build cache
         uses: actions/cache@v4
         with:
           key: openwrt-${{ needs.check_commits.outputs.latest_commit_sha }}
