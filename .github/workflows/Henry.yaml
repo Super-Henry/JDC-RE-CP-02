@@ -87,31 +87,42 @@ jobs:
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
 
       # ==========================
-      # ✅【修复 1：正确复制 files】
+      # 【核心：先把 files 丢进 upperdir】
       # ==========================
+      - name: Prepare upperdir for custom files 
+        run: |
+          sudo mkdir -p /mnt/upper/files
+          sudo chmod a+w /mnt/upper
+          sudo cp -a builder_repo/files/. /mnt/upper/files/
+          ls -la /mnt/upper/files/
+
       - name: Setup configuration and custom files
         run: |
           df -h
           mv builder_repo/${{ env.CONFIG_FILE }} .config
-          # 修复你写错的配置行
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
           
           # 【核心修复】强制锁定内核，不允许自动修改
           make defconfig
-          
-          # 【正确方法】直接复制整个 files 目录，保证 100% 进固件
-          cp -r builder_repo/files .
-          ls -la files/
 
       # ==========================
-      # ❌【修复 2：删除危险 overlay 挂载】
+      # 【挂载 overlay】
       # ==========================
-      # - name: Use /mnt for more disk space
-      #   run: |
-      #     sudo mkdir -p /mnt/upper /mnt/work && sudo chmod a+w /mnt/upper
-      #     sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd)
-      #     df -h
+      - name: Use /mnt for more disk space
+        run: |
+          sudo mkdir -p /mnt/upper /mnt/work
+          sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd)
+          df -h
+
+      # ==========================
+      # 【验证 files 已经存在】
+      # ==========================
+      - name: Verify custom files exist
+        run: |
+          echo "==== 检查自定义文件是否存在 ===="
+          ls -la files/ || true
+          find files/ 2>/dev/null | head -20
 
       - name: Build cache
         uses: actions/cache@v4
