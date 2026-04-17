@@ -1,21 +1,21 @@
-name: Build OpenWrt for specific target and release
-
+name: Build OpenWrt - Henry Custom
 permissions:
   contents: write
   actions: write
 
 on:
+  push:
+    branches:
+      - stable-version
   workflow_dispatch:
-  #push:
-  schedule:
-    - cron: "0 */3 * * *"
 
 env:
   REMOTE_REPOSITORY: Super-Henry/openwrt
   REMOTE_BRANCH: v25.12.2
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
-  RELEASE_PREFIX: stable
+  RELEASE_PREFIX: stable-version
+  ENV: stable-version
 
 jobs:
   check_commits:
