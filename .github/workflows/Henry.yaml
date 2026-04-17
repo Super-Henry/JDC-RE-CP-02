@@ -92,45 +92,41 @@ jobs:
         run: |
           df -h
           mv builder_repo/${{ env.CONFIG_FILE }} .config
-          
-          cat > .config << EOF
-CONFIG_PACKAGE_luci-theme-argon=y
-CONFIG_PACKAGE_luci-app-argon-config=y
-CONFIG_PACKAGE_luci-app-openclash=m
-CONFIG_PACKAGE_luci-app-passwall2=m
-CONFIG_PACKAGE_luci-app-pgyvpn=m
-
-CONFIG_PACKAGE_iptables=m
-CONFIG_PACKAGE_iptables-mod-tproxy=m
-CONFIG_PACKAGE_iptables-mod-extra=m
-
-CONFIG_PACKAGE_libopenssl=m
-CONFIG_OPENSSL_VERSION_1_1_1=y
-CONFIG_OPENSSL_VERSION_3_0=n
-CONFIG_OPENSSL_ENGINE_CRYPTO=y
-CONFIG_OPENSSL_ENGINE_DIGEST=y
-
-CONFIG_PACKAGE_kmod-tun=m
-CONFIG_PACKAGE_kmod-inet-diag=m
-CONFIG_PACKAGE_kmod-nf-tproxy=m
-CONFIG_PACKAGE_kmod-nf-conntrack=m
-CONFIG_PACKAGE_kmod-nf-conntrack6=m
-CONFIG_PACKAGE_kmod-ipt-tproxy=m
-CONFIG_PACKAGE_kmod-ipt-nat=m
-CONFIG_PACKAGE_kmod-ipt-nat6=m
-CONFIG_PACKAGE_kmod-crypto-aes=m
-CONFIG_PACKAGE_kmod-crypto-sha256=m
-
-CONFIG_PACKAGE_ipset=m
-CONFIG_PACKAGE_libcap=m
-CONFIG_PACKAGE_bash=m
-CONFIG_PACKAGE_ca-bundle=m
-CONFIG_PACKAGE_unzip=m
-
-CONFIG_PACKAGE_dnsmasq-full=y
-CONFIG_PACKAGE_dnsmasq=n
-EOF
-          
+          echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
+          echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
+          echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
+          echo "" >> .config
+          echo "CONFIG_PACKAGE_iptables=m" >> .config
+          echo "CONFIG_PACKAGE_iptables-mod-tproxy=m" >> .config
+          echo "CONFIG_PACKAGE_iptables-mod-extra=m" >> .config
+          echo "" >> .config
+          echo "CONFIG_PACKAGE_libopenssl=m" >> .config
+          echo "CONFIG_OPENSSL_VERSION_1_1_1=y" >> .config
+          echo "CONFIG_OPENSSL_VERSION_3_0=n" >> .config
+          echo "CONFIG_OPENSSL_ENGINE_CRYPTO=y" >> .config
+          echo "CONFIG_OPENSSL_ENGINE_DIGEST=y" >> .config
+          echo "" >> .config
+          echo "CONFIG_PACKAGE_kmod-tun=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-inet-diag=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-nf-tproxy=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-nf-conntrack=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-nf-conntrack6=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-ipt-tproxy=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-ipt-nat=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-ipt-nat6=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-crypto-aes=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-crypto-sha256=m" >> .config
+          echo "" >> .config
+          echo "CONFIG_PACKAGE_ipset=m" >> .config
+          echo "CONFIG_PACKAGE_libcap=m" >> .config
+          echo "CONFIG_PACKAGE_bash=m" >> .config
+          echo "CONFIG_PACKAGE_ca-bundle=m" >> .config
+          echo "CONFIG_PACKAGE_unzip=m" >> .config
+          echo "" >> .config
+          echo "CONFIG_PACKAGE_dnsmasq-full=y" >> .config
+          echo "CONFIG_PACKAGE_dnsmasq=n" >> .config
           make defconfig -j$(nproc)
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
