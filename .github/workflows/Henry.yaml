@@ -81,7 +81,7 @@ jobs:
           
           # 🔥 加入蒲公英 VPN (OpenOray)
           mkdir -p package/openwrt-packages
-          git clone https://github.com/OrayOS/OpenOray package/openwrt-packages/OpenOray
+          git clone https://github.com/Super-Henry/OpenOray package/openwrt-packages/OpenOray
           
           #git clone https://github.com/dgyangxf/luci-app-vlmcsd.git package/feeds/luci/luci-app-vlmcsd
           #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
@@ -103,7 +103,8 @@ jobs:
           echo "CONFIG_PACKAGE_iptables-mod-extra=m" >> .config
           echo "" >> .config
           echo "CONFIG_PACKAGE_libopenssl=m" >> .config
-          echo "CONFIG_OPENSSL_VERSION_1_1_1=y" >> .config
+          echo "CONFIG_PACKAGE_libopenssl-1.1=y" >> .config
+          echo "CONFIG_OPENSSL_VERSION_1_1=y" >> .config
           echo "CONFIG_OPENSSL_VERSION_3_0=n" >> .config
           echo "CONFIG_OPENSSL_ENGINE_CRYPTO=y" >> .config
           echo "CONFIG_OPENSSL_ENGINE_DIGEST=y" >> .config
