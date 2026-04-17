@@ -82,7 +82,7 @@ jobs:
           
           # 🔥 加入蒲公英 VPN (OpenOray)
           mkdir -p package/openwrt-packages
-          git clone https://github.com/Super-Henry/OpenOray package/openwrt-packages/OpenOray
+          #git clone https://github.com/Super-Henry/OpenOray package/openwrt-packages/OpenOray
           
           #git clone https://github.com/dgyangxf/luci-app-vlmcsd.git package/feeds/luci/luci-app-vlmcsd
           #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
@@ -97,7 +97,7 @@ jobs:
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
+          #echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
           echo "" >> .config
           echo "CONFIG_PACKAGE_iptables=m" >> .config
           echo "CONFIG_PACKAGE_iptables-mod-tproxy=m" >> .config
