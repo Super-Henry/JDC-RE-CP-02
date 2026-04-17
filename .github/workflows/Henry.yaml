@@ -1,4 +1,4 @@
-name: Build OpenWrt - Henry Custom Lede
+name: Build OpenWrt - Henry Custom 
 
 permissions:
   contents: write
