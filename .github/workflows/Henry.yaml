@@ -5,17 +5,18 @@ permissions:
   actions: write
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
-  #push:
-  schedule:
-    - cron: "0 */3 * * *"
 
 env:
   REMOTE_REPOSITORY: Super-Henry/openwrt
   REMOTE_BRANCH: development-version
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
-  RELEASE_PREFIX: development
+  RELEASE_PREFIX: main
+  ENV: main
 
 jobs:
   check_commits:
