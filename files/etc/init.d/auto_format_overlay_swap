@@ -1,0 +1,48 @@
+#!/bin/sh /etc/rc.common
+START=8
+STOP=99
+
+start() {
+    # 等待 eMMC 初始化
+    sleep 3
+
+    # 格式化标记（只执行一次）
+    OVERLAY_MARKER="/overlay/.format_done"
+    SWAP_MARKER="/tmp/swap_format_done"
+
+    # ==============================================
+    # 格式化 overlay /dev/mmcblk0p6（仅首次/升级后）
+    # ==============================================
+    if [ ! -f "$OVERLAY_MARKER" ]; then
+        echo "【自动格式化】首次启动，格式化 overlay: /dev/mmcblk0p6"
+        
+        umount /dev/mmcblk0p6 >/dev/null 2>&1
+        mkfs.ext4 -F -L overlay /dev/mmcblk0p6
+        mkdir -p /overlay
+        mount /dev/mmcblk0p6 /overlay
+        touch "$OVERLAY_MARKER"
+        
+        echo "【完成】overlay 格式化成功"
+    fi
+
+    # ==============================================
+    # 格式化 swap /dev/mmcblk0p5（仅首次/升级后）
+    # ==============================================
+    if [ ! -f "$SWAP_MARKER" ]; then
+        echo "【自动格式化】首次启动，格式化 swap: /dev/mmcblk0p5"
+        
+        swapoff /dev/mmcblk0p5 >/dev/null 2>&1
+        mkswap -L swap /dev/mmcblk0p5
+        swapon /dev/mmcblk0p5
+        touch "$SWAP_MARKER"
+        
+        echo "【完成】swap 格式化并启用成功"
+    fi
+
+    # 重新挂载所有分区
+    /etc/init.d/fstab restart
+}
+
+stop() {
+    return 0
+}
