@@ -1,4 +1,4 @@
-name: Build OpenWrt - Henry Custom
+name: Build OpenWrt - Henry Custom 
 
 permissions:
   contents: write
@@ -7,16 +7,16 @@ permissions:
 on:
   push:
     branches:
-      - development-version
+      - main
   workflow_dispatch:
 
 env:
   REMOTE_REPOSITORY: Super-Henry/openwrt
-  REMOTE_BRANCH: development-version
+  REMOTE_BRANCH: main
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
-  RELEASE_PREFIX: development-version
-  ENV: development-version
+  RELEASE_PREFIX: main
+  ENV: main
 
 jobs:
   check_commits:
@@ -73,7 +73,6 @@ jobs:
         run: |
           df -h
           #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
-          ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/feeds/luci/luci-app-passwall2
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git package/utils/passwall2
           git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
@@ -88,6 +87,7 @@ jobs:
           #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
           #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
+	  ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
 
       - name: Setup configuration and custom files
         run: |
