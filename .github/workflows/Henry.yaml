@@ -1,4 +1,4 @@
-name: Build OpenWrt - Henry Custom 
+name: Build OpenWrt - Henry Custom
 
 permissions:
   contents: write
@@ -33,9 +33,7 @@ jobs:
         run: |
           latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/commits/${{ env.REMOTE_BRANCH }}" --jq .sha)
           release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body 2>/dev/null || echo "")
-
           new_commits=$([[ "$release_body" == *"$latest_sha"* ]] && echo "false" || echo "true")
-
           echo "new_commits=$new_commits" >> "$GITHUB_OUTPUT"
           echo "latest_commit_sha=$latest_sha" >> "$GITHUB_OUTPUT"
 
@@ -47,7 +45,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev python3-setuptools rsync swig unzip zlib1g-dev file wget
-        
+
       - name: Checkout remote repository
         uses: actions/checkout@v4
         with:
@@ -72,73 +70,90 @@ jobs:
       - name: Update and install feeds
         run: |
           df -h
-          #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
-          ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
+          ./scripts/feeds update -a
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/feeds/luci/luci-app-passwall2
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git package/utils/passwall2
           git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
           git clone https://github.com/jerrykuku/luci-app-argon-config.git package/feeds/luci/luci-app-argon-config
           git clone https://github.com/vernesong/OpenClash.git package/luci-app-openclash
-          
-          # 🔥 加入蒲公英 VPN (OpenOray)
           mkdir -p package/openwrt-packages
-          #git clone https://github.com/Super-Henry/OpenOray package/openwrt-packages/OpenOray
-          
-          #git clone https://github.com/dgyangxf/luci-app-vlmcsd.git package/feeds/luci/luci-app-vlmcsd
-          #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
-          #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
+          ./scripts/feeds install -a
 
       - name: Setup configuration and custom files
         run: |
           df -h
           mv builder_repo/${{ env.CONFIG_FILE }} .config
+          echo "CONFIG_USE_APK=y" >> .config
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
-          #echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
           echo "" >> .config
-          echo "CONFIG_PACKAGE_iptables=m" >> .config
-          echo "CONFIG_PACKAGE_iptables-mod-tproxy=m" >> .config
-          echo "CONFIG_PACKAGE_iptables-mod-extra=m" >> .config
+          echo "# OpenClash 依赖" >> .config
+          echo "CONFIG_PACKAGE_openssl=m" >> .config
+          echo "CONFIG_PACKAGE_coreutils=m" >> .config
+          echo "CONFIG_PACKAGE_coreutils-nohup=m" >> .config
+          echo "CONFIG_PACKAGE_bash=m" >> .config
+          echo "CONFIG_PACKAGE_curl=m" >> .config
+          echo "CONFIG_PACKAGE_jsonfilter=m" >> .config
+          echo "CONFIG_PACKAGE_ca-certificates=m" >> .config
           echo "" >> .config
-          echo "CONFIG_PACKAGE_libopenssl=m" >> .config
+          echo "# PassWall2 核心组件" >> .config
+          echo "CONFIG_PACKAGE_passwall2=m" >> .config
+          echo "CONFIG_PACKAGE_xray-core=m" >> .config
+          echo "CONFIG_PACKAGE_xray-plugin=m" >> .config
+          echo "CONFIG_PACKAGE_sing-box=m" >> .config
+          echo "CONFIG_PACKAGE_hysteria=m" >> .config
+          echo "CONFIG_PACKAGE_naiveproxy=m" >> .config
+          echo "CONFIG_PACKAGE_tuic-client=m" >> .config
+          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-redir=m" >> .config
+          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-tunnel=m" >> .config
+          echo "CONFIG_PACKAGE_shadowsocksr-libev-ssr-redir=m" >> .config
+          echo "" >> .config
+          echo "# 内核模块（集成到固件）" >> .config
+          echo "CONFIG_PACKAGE_kmod-tun=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-inet-diag=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-nf-tproxy=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-nf-conntrack=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-nf-conntrack6=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-ipt-tproxy=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-ipt-nat=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-ipt-nat6=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-crypto-aead=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-crypto-crc32c=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-crypto-hash=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-crypto-aes=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-crypto-sha256=y" >> .config
+          echo "" >> .config
+          echo "# 用户空间工具" >> .config
+          echo "CONFIG_PACKAGE_iptables=y" >> .config
+          echo "CONFIG_PACKAGE_iptables-mod-tproxy=y" >> .config
+          echo "CONFIG_PACKAGE_iptables-mod-extra=y" >> .config
+          echo "CONFIG_PACKAGE_ipset=y" >> .config
+          echo "CONFIG_PACKAGE_libcap=y" >> .config
+          echo "CONFIG_PACKAGE_unzip=y" >> .config
+          echo "CONFIG_PACKAGE_ca-bundle=y" >> .config
+          echo "" >> .config
+          echo "CONFIG_PACKAGE_libopenssl=y" >> .config
           echo "CONFIG_PACKAGE_libopenssl-1.1=y" >> .config
           echo "CONFIG_OPENSSL_VERSION_1_1=y" >> .config
           echo "CONFIG_OPENSSL_VERSION_3_0=n" >> .config
           echo "CONFIG_OPENSSL_ENGINE_CRYPTO=y" >> .config
           echo "CONFIG_OPENSSL_ENGINE_DIGEST=y" >> .config
           echo "" >> .config
-          echo "CONFIG_PACKAGE_kmod-tun=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-inet-diag=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-nf-tproxy=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-nf-conntrack=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-nf-conntrack6=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-ipt-tproxy=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-ipt-nat=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-ipt-nat6=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-crypto-aes=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-crypto-sha256=m" >> .config
-          echo "" >> .config
-          echo "CONFIG_PACKAGE_ipset=m" >> .config
-          echo "CONFIG_PACKAGE_libcap=m" >> .config
-          echo "CONFIG_PACKAGE_bash=m" >> .config
-          echo "CONFIG_PACKAGE_ca-bundle=m" >> .config
-          echo "CONFIG_PACKAGE_unzip=m" >> .config
-          echo "" >> .config
           echo "CONFIG_PACKAGE_dnsmasq-full=y" >> .config
           echo "CONFIG_PACKAGE_dnsmasq=n" >> .config
           make defconfig -j$(nproc)
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
-   
+
       - name: Use /mnt for more disk space
         run: |
           sudo mkdir -p /mnt/upper /mnt/work && sudo chmod a+w /mnt/upper
           sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd)
           df -h
-                 
+
       - name: cache
         uses: actions/cache@v4
         if: always()
@@ -167,14 +182,14 @@ jobs:
           df -h
           ./scripts/feeds update -a
           make download -j$(nproc)
-          
+
       - name: Build firmware
         run: |
           df -h
           make check -j$(nproc) FIXUP=1 V=s
           make -j$(nproc) || make -j1 V=s  # Retry single-threaded on failure
           tar cvzf bin/targets/ramips/mt7621/snapshots.tar.gz -C bin packages/mipsel_24kc targets/ramips/mt7621/packages
-        
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -184,7 +199,7 @@ jobs:
       - name: Check disk space usage
         if: always()
         run: df -h
-        
+
   release:
     name: Create release
     needs: [check_commits, build]
