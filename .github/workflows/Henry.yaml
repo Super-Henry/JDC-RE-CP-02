@@ -87,7 +87,7 @@ jobs:
           #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
           #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
-	  ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
+          ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
 
       - name: Setup configuration and custom files
         run: |
