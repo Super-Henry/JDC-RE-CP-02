@@ -70,15 +70,22 @@ jobs:
       - name: Update and install feeds
         run: |
           df -h
-          ./scripts/feeds update -a
+          #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/feeds/luci/luci-app-passwall2
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git package/utils/passwall2
           git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
           git clone https://github.com/jerrykuku/luci-app-argon-config.git package/feeds/luci/luci-app-argon-config
           git clone https://github.com/vernesong/OpenClash.git package/luci-app-openclash
+
+          # 🔥 加入蒲公英 VPN (OpenOray)
           mkdir -p package/openwrt-packages
+          git clone https://github.com/Super-Henry/OpenOray package/openwrt-packages/OpenOray
+
+          #git clone https://github.com/dgyangxf/luci-app-vlmcsd.git package/feeds/luci/luci-app-vlmcsd
+          #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
+          #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
-          ./scripts/feeds install -a
+          ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
 
       - name: Setup configuration and custom files
         run: |
@@ -87,19 +94,24 @@ jobs:
           echo "CONFIG_USE_APK=y" >> .config
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
+
+          # 插件全部 =m 不占用固件空间
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
+          echo "CONFIG_PACKAGE_orayvpn=m" >> .config        # 蒲公英
+          echo "CONFIG_PACKAGE_luci-app-orayvpn=m" >> .config # 蒲公英LUCI
+
           echo "" >> .config
-          echo "# OpenClash 依赖" >> .config
+          echo "# OpenClash 依赖（全部离线IPK）" >> .config
           echo "CONFIG_PACKAGE_openssl=m" >> .config
           echo "CONFIG_PACKAGE_coreutils=m" >> .config
           echo "CONFIG_PACKAGE_coreutils-nohup=m" >> .config
           echo "CONFIG_PACKAGE_bash=m" >> .config
-          echo "CONFIG_PACKAGE_curl=m" >> .config
           echo "CONFIG_PACKAGE_jsonfilter=m" >> .config
           echo "CONFIG_PACKAGE_ca-certificates=m" >> .config
+
           echo "" >> .config
-          echo "# PassWall2 核心组件" >> .config
+          echo "# PassWall2 全部组件（离线IPK）" >> .config
           echo "CONFIG_PACKAGE_passwall2=m" >> .config
           echo "CONFIG_PACKAGE_xray-core=m" >> .config
           echo "CONFIG_PACKAGE_xray-plugin=m" >> .config
@@ -110,40 +122,41 @@ jobs:
           echo "CONFIG_PACKAGE_shadowsocks-libev-ss-redir=m" >> .config
           echo "CONFIG_PACKAGE_shadowsocks-libev-ss-tunnel=m" >> .config
           echo "CONFIG_PACKAGE_shadowsocksr-libev-ssr-redir=m" >> .config
+
           echo "" >> .config
-          echo "# 内核模块（集成到固件）" >> .config
+          echo "# 必须集成内核模块（最小化，保证插件可用）" >> .config
           echo "CONFIG_PACKAGE_kmod-tun=y" >> .config
           echo "CONFIG_PACKAGE_kmod-inet-diag=y" >> .config
           echo "CONFIG_PACKAGE_kmod-nf-tproxy=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-nf-conntrack=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-nf-conntrack6=y" >> .config
           echo "CONFIG_PACKAGE_kmod-ipt-tproxy=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-ipt-nat=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-ipt-nat6=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-crypto-aead=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-crypto-crc32c=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-crypto-hash=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-crypto-aes=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-crypto-sha256=y" >> .config
+
           echo "" >> .config
-          echo "# 用户空间工具" >> .config
+          echo "# 必要工具（插件必需）" >> .config
           echo "CONFIG_PACKAGE_iptables=y" >> .config
           echo "CONFIG_PACKAGE_iptables-mod-tproxy=y" >> .config
-          echo "CONFIG_PACKAGE_iptables-mod-extra=y" >> .config
-          echo "CONFIG_PACKAGE_ipset=y" >> .config
-          echo "CONFIG_PACKAGE_libcap=y" >> .config
+          echo "CONFIG_PACKAGE_curl=y" >> .config
           echo "CONFIG_PACKAGE_unzip=y" >> .config
           echo "CONFIG_PACKAGE_ca-bundle=y" >> .config
+
           echo "" >> .config
+          echo "# 非必需，设为=m" >> .config
+          echo "CONFIG_PACKAGE_ipset=m" >> .config
+          echo "CONFIG_PACKAGE_libcap=m" >> .config
+
+          echo "" >> .config
+          echo "# OpenSSL 双版本共存（蒲公英=1.1 插件=3.0）" >> .config
           echo "CONFIG_PACKAGE_libopenssl=y" >> .config
-          echo "CONFIG_PACKAGE_libopenssl-1.1=y" >> .config
+          echo "CONFIG_PACKAGE_libopenssl-1.1=y" >> .config       # 蒲公英内置
+          echo "CONFIG_PACKAGE_libopenssl-3.0=m" >> .config       # OpenClash/PassWall插件
           echo "CONFIG_OPENSSL_VERSION_1_1=y" >> .config
-          echo "CONFIG_OPENSSL_VERSION_3_0=n" >> .config
+          echo "CONFIG_OPENSSL_VERSION_3_0=y" >> .config
           echo "CONFIG_OPENSSL_ENGINE_CRYPTO=y" >> .config
           echo "CONFIG_OPENSSL_ENGINE_DIGEST=y" >> .config
+
           echo "" >> .config
           echo "CONFIG_PACKAGE_dnsmasq-full=y" >> .config
           echo "CONFIG_PACKAGE_dnsmasq=n" >> .config
+
           make defconfig -j$(nproc)
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
@@ -231,7 +244,14 @@ jobs:
 
             ### 📝 Build Information
             - **Target:** [JDCloud RE-CP-02 鲁班]
+            - **OpenSSL 1.1（内置，蒲公英）+ 3.0（插件，科学插件）**
             - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
+
+            ### 📦 插件说明（均为离线IPK，不占固件空间）
+            - Passwall2 全套
+            - OpenClash 全套
+            - 蒲公英 VPN (OpenOray)
+            - Argon 主题 + 配置
 
             ### 📋 Notes
             - Automated build triggered by ${{ github.event_name }}
