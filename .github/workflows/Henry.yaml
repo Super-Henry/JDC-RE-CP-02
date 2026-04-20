@@ -78,11 +78,40 @@ jobs:
           git clone https://github.com/vernesong/OpenClash.git package/luci-app-openclash
 
           # 🔥 加入蒲公英 VPN (OpenOray)
-          mkdir -p package/openwrt-packages
-          git clone https://github.com/Super-Henry/OpenOray package/openwrt-packages/OpenOray
-
-          # 🔥 自动修复蒲公英依赖错误（只加这一行，其余不动）
-          sed -i 's/libopenssl-1.1/libopenssl/g' package/openwrt-packages/OpenOray/pgyvpn/Makefile
+          git clone https://github.com/OrayOS/OpenOray.git package/OpenOray
+          
+          # 检查克隆是否成功
+          if [ -d "package/OpenOray" ]; then
+            echo "✅ OpenOray 仓库克隆成功"
+          else
+            echo "❌ OpenOray 仓库克隆失败"
+            exit 1
+          fi
+          
+          # 🔥 强制蒲公英使用 OpenSSL 1.1
+          if [ -f "package/OpenOray/pgyvpn/Makefile" ]; then
+            # 强制使用 OpenSSL 1.1
+            sed -i 's/libopenssl-1.1/libopenssl1_1/g' package/OpenOray/pgyvpn/Makefile
+            sed -i 's/+libopenssl/+libopenssl1_1/g' package/OpenOray/pgyvpn/Makefile
+            # 移除 OpenSSL 3.0 依赖
+            sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
+            # 修复可能的内核模块依赖
+            sed -i 's/+kmod-tun//g' package/OpenOray/pgyvpn/Makefile
+            echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
+          fi
+          
+          # 修复 luci 应用 Makefile
+          if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
+            sed -i 's/+luci-lib-ipkg//g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+luci-lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+luci-compat/+luci-base/g' package/OpenOray/luci-app-pgyvpn/Makefile
+            echo "✅ luci-app-pgyvpn Makefile 已修复"
+          fi
+          
+          # 创建软链接
+          ln -sf ../../OpenOray/pgyvpn package/feeds/packages/pgyvpn 2>/dev/null || true
+          ln -sf ../../OpenOray/luci-app-pgyvpn package/feeds/luci/applications/luci-app-pgyvpn 2>/dev/null || true
 
           #git clone https://github.com/dgyangxf/luci-app-vlmcsd.git package/feeds/luci/luci-app-vlmcsd
           #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
@@ -101,11 +130,13 @@ jobs:
           # 插件全部 =m 不占用固件空间
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
-          echo "CONFIG_PACKAGE_orayvpn=m" >> .config        # 蒲公英
-          echo "CONFIG_PACKAGE_luci-app-orayvpn=m" >> .config # 蒲公英LUCI
+          # 蒲公英使用 OpenSSL 1.1
+          echo "CONFIG_PACKAGE_pgyvpn=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
 
           echo "" >> .config
-          echo "# OpenClash 依赖（全部离线IPK）" >> .config
+          echo "# OpenClash 依赖（使用 OpenSSL 3.0）" >> .config
+          echo "CONFIG_PACKAGE_libopenssl3=m" >> .config
           echo "CONFIG_PACKAGE_openssl=m" >> .config
           echo "CONFIG_PACKAGE_coreutils=m" >> .config
           echo "CONFIG_PACKAGE_coreutils-nohup=m" >> .config
@@ -114,7 +145,7 @@ jobs:
           echo "CONFIG_PACKAGE_ca-certificates=m" >> .config
 
           echo "" >> .config
-          echo "# PassWall2 全部组件（离线IPK）" >> .config
+          echo "# PassWall2 依赖（使用 OpenSSL 3.0）" >> .config
           echo "CONFIG_PACKAGE_passwall2=m" >> .config
           echo "CONFIG_PACKAGE_xray-core=m" >> .config
           echo "CONFIG_PACKAGE_xray-plugin=m" >> .config
@@ -127,14 +158,18 @@ jobs:
           echo "CONFIG_PACKAGE_shadowsocksr-libev-ssr-redir=m" >> .config
 
           echo "" >> .config
-          echo "# 必须集成内核模块（最小化，保证插件可用）" >> .config
+          echo "# 蒲公英依赖（使用 OpenSSL 1.1，必须内置）" >> .config
+          echo "CONFIG_PACKAGE_libopenssl1_1=y" >> .config
+
+          echo "" >> .config
+          echo "# 必须集成内核模块" >> .config
           echo "CONFIG_PACKAGE_kmod-tun=y" >> .config
           echo "CONFIG_PACKAGE_kmod-inet-diag=y" >> .config
           echo "CONFIG_PACKAGE_kmod-nf-tproxy=y" >> .config
           echo "CONFIG_PACKAGE_kmod-ipt-tproxy=y" >> .config
 
           echo "" >> .config
-          echo "# 必要工具（插件必需）" >> .config
+          echo "# 必要工具" >> .config
           echo "CONFIG_PACKAGE_iptables=y" >> .config
           echo "CONFIG_PACKAGE_iptables-mod-tproxy=y" >> .config
           echo "CONFIG_PACKAGE_curl=y" >> .config
@@ -142,7 +177,7 @@ jobs:
           echo "CONFIG_PACKAGE_ca-bundle=y" >> .config
 
           echo "" >> .config
-          echo "# 非必需，设为=m" >> .config
+          echo "# 其他可选" >> .config
           echo "CONFIG_PACKAGE_ipset=m" >> .config
           echo "CONFIG_PACKAGE_libcap=m" >> .config
 
@@ -243,18 +278,20 @@ jobs:
 
             ### 📝 Build Information
             - **Target:** [JDCloud RE-CP-02 鲁班]
-            - **OpenSSL 自动兼容蒲公英**
+            - **固件大小:** 小于 16MB
+            - **OpenSSL 配置:** 蒲公英使用 1.1，其他使用 3.0
             - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
 
             ### 📦 插件说明（均为离线IPK，不占固件空间）
-            - Passwall2 全套
-            - OpenClash 全套
-            - 蒲公英 VPN (OpenOray) ✅ 已修复
+            - Passwall2 全套 (OpenSSL 3.0)
+            - OpenClash 全套 (OpenSSL 3.0)
+            - 蒲公英 VPN pgyvpn (OpenSSL 1.1) ✅
             - Argon 主题 + 配置
 
             ### 📋 Notes
             - Automated build triggered by ${{ github.event_name }}
-            - Previous releases are automatically cleaned up (keeping latest 5)
+            - 插件均为离线 IPK，刷机后需手动安装
+            - 固件本身小于 16MB
             ---
             _Generated by GitHub Actions 🤖_
 
