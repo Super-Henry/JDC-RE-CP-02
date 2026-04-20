@@ -4,9 +4,9 @@ permissions:
   actions: write
 
 on:
-  push:
-    branches:
-      - stable-version
+  #push:
+    #branches:
+      #- stable-version
   workflow_dispatch:
 
 env:
