@@ -1,0 +1,58 @@
+#!/bin/sh
+
+# 创建挂载目录
+mkdir -p /mnt/mmcblk0p3
+mkdir -p /mnt/samba
+chmod 777 /mnt/mmcblk0p3
+chmod 777 /mnt/samba
+
+# ==============================
+# Samba 全局配置
+# ==============================
+uci set samba.global=config
+uci set samba.global.workgroup='WORKGROUP'
+uci set samba.global.netbiosname='OpenWrt'
+uci set samba.global.charset='UTF-8'
+uci set samba.global.users='root'
+
+# ==============================
+# 共享 p3 → 名字：data
+# ==============================
+uci delete samba.share_data
+uci set samba.share_data=share
+uci set samba.share_data.name='data'
+uci set samba.share_data.path='/mnt/mmcblk0p3'
+uci set samba.share_data.read_only='no'
+uci set samba.share_data.guest_ok='no'
+uci set samba.share_data.create_mask='0666'
+uci set samba.share_data.dir_mask='0777'
+uci set samba.share_data.browseable='yes'
+
+# ==============================
+# 共享 p4 → 名字：files
+# ==============================
+uci delete samba.share_files
+uci set samba.share_files=share
+uci set samba.share_files.name='files'
+uci set samba.share_files.path='/mnt/samba'
+uci set samba.share_files.read_only='no'
+uci set samba.share_files.guest_ok='no'
+uci set samba.share_files.create_mask='0666'
+uci set samba.share_files.dir_mask='0777'
+uci set samba.share_files.browseable='yes'
+
+# 保存配置
+uci commit samba
+
+# ==============================
+# 默认密码：321456
+# ==============================
+if [ ! -f /etc/samba/private/passdb.tdb ]; then
+    (echo 321456; echo 321456) | smbpasswd -s -a root
+fi
+
+# 启动服务
+/etc/init.d/samba4 enable
+/etc/init.d/samba4 restart
+
+exit 0
