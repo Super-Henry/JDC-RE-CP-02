@@ -139,11 +139,23 @@ jobs:
           ./scripts/feeds install -a -p luci
           ./scripts/feeds install -a -p packages
 
-
       - name: Setup configuration and custom files
         run: |
           df -h
           mv builder_repo/${{ env.CONFIG_FILE }} .config
+          
+          # 关键：强制扫描所有本地包
+          make package/symlinks
+          
+          # 先运行 defconfig 生成基础配置
+          make defconfig -j$(nproc)
+          
+          # 强制加入 libopenssl1.1 的配置（确保包被识别）
+          echo "CONFIG_PACKAGE_libopenssl1.1=y" >> .config
+          # 运行 oldconfig 接受新选项
+          make oldconfig
+          
+          # 然后添加其他插件配置（保留原有全部 echo 命令）
           echo "CONFIG_USE_APK=y" >> .config
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
@@ -184,7 +196,8 @@ jobs:
 
           echo "" >> .config
           echo "# 蒲公英 & 花生壳 依赖（使用 OpenSSL 1.1，必须内置）" >> .config
-          echo "CONFIG_PACKAGE_libopenssl1.1=y" >> .config
+          # 已经在上方强制加入，这里保留注释即可，或者重复写入也无害
+          # echo "CONFIG_PACKAGE_libopenssl1.1=y" >> .config
 
           echo "" >> .config
           echo "# 必须集成内核模块" >> .config
@@ -213,7 +226,9 @@ jobs:
           echo "CONFIG_PACKAGE_dnsmasq-full=y" >> .config
           echo "CONFIG_PACKAGE_dnsmasq=n" >> .config
 
+          # 最后再运行一次 defconfig 确保所有依赖正确解析
           make defconfig -j$(nproc)
+          
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && cp -r builder_repo/${{ env.CUSTOM_FILES_PATH }}. ${{ env.CUSTOM_FILES_PATH }} || true
 
