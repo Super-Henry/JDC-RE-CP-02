@@ -107,6 +107,30 @@ jobs:
             echo "✅ luci-app-pgyvpn Makefile 已修复"
           fi
 
+          # 🔥 加入花生壳 (phtunnel)
+          # 官方源码（如果 OpenOray 已包含则跳过，但额外克隆确保可用）
+          git clone https://github.com/Super-Henry/phtunnel.git package/phtunnel 2>/dev/null || echo "phtunnel already exists"
+          git clone https://github.com/Super-Henry/luci-app-phtunnel.git package/luci-app-phtunnel 2>/dev/null || echo "luci-app-phtunnel already exists"
+          
+          # 强制花生壳使用 OpenSSL 1.1
+          if [ -f "package/phtunnel/Makefile" ]; then
+            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/phtunnel/Makefile
+            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/phtunnel/Makefile
+            sed -i '/+libopenssl3/d' package/phtunnel/Makefile
+            echo "✅ phtunnel Makefile 已强制使用 OpenSSL 1.1"
+          fi
+          # 修复 luci-app-phtunnel 依赖
+          if [ -f "package/luci-app-phtunnel/Makefile" ]; then
+            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/luci-app-phtunnel/Makefile
+            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/luci-app-phtunnel/Makefile
+            sed -i '/+libopenssl3/d' package/luci-app-phtunnel/Makefile
+            # 移除不存在的 luci 依赖
+            sed -i 's/+luci-lib-ipkg//g' package/luci-app-phtunnel/Makefile
+            sed -i 's/+luci-lua//g' package/luci-app-phtunnel/Makefile
+            sed -i 's/+lua//g' package/luci-app-phtunnel/Makefile
+            echo "✅ luci-app-phtunnel Makefile 已修复"
+          fi
+
           # 解压自定义插件到 package/ 独立目录（避免被 feeds 清理）
           unzip builder_repo/luci-app-accesscontrol.zip -d package/luci-app-accesscontrol
 
@@ -130,6 +154,9 @@ jobs:
           # 蒲公英使用 OpenSSL 1.1
           echo "CONFIG_PACKAGE_pgyvpn=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
+          # 花生壳使用 OpenSSL 1.1
+          echo "CONFIG_PACKAGE_phtunnel=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-phtunnel=m" >> .config
 
           echo "" >> .config
           echo "# OpenClash 依赖（使用 OpenSSL 3.0）" >> .config
@@ -156,7 +183,7 @@ jobs:
           echo "CONFIG_PACKAGE_shadowsocksr-libev-ssr-redir=m" >> .config
 
           echo "" >> .config
-          echo "# 蒲公英依赖（使用 OpenSSL 1.1，必须内置）" >> .config
+          echo "# 蒲公英 & 花生壳 依赖（使用 OpenSSL 1.1，必须内置）" >> .config
           echo "CONFIG_PACKAGE_libopenssl1.1=y" >> .config
 
           echo "" >> .config
@@ -178,6 +205,8 @@ jobs:
           echo "# 其他可选" >> .config
           echo "CONFIG_PACKAGE_ipset=m" >> .config
           echo "CONFIG_PACKAGE_libcap=m" >> .config
+          # 花生壳可能需要的 C++ 运行时
+          echo "CONFIG_PACKAGE_libstdcpp=y" >> .config
 
           echo "" >> .config
           echo "# DNS 配置" >> .config
@@ -272,13 +301,14 @@ jobs:
             ### 📝 Build Information
             - **Target:** [JDCloud RE-CP-02 鲁班]
             - **固件大小:** 小于 16MB
-            - **OpenSSL 配置:** 蒲公英使用 1.1，其他使用 3.0
+            - **OpenSSL 配置:** 蒲公英 & 花生壳使用 1.1，其他使用 3.0
             - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
 
             ### 📦 插件说明（均为离线IPK，不占固件空间）
             - Passwall2 全套 (OpenSSL 3.0)
             - OpenClash 全套 (OpenSSL 3.0)
             - 蒲公英 VPN pgyvpn (OpenSSL 1.1) ✅
+            - 花生壳 phtunnel (OpenSSL 1.1) ✅
             - Argon 主题 + 配置
 
             ### 📋 Notes
