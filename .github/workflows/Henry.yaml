@@ -95,7 +95,6 @@ jobs:
             sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
             # 删除可能存在的 libopenssl3 依赖
             sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
-            # 注意：保留 kmod-tun，不要删除
             echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
           fi
 
@@ -116,6 +115,18 @@ jobs:
           ./scripts/feeds install -a -p luci
           ./scripts/feeds install -a -p packages
 
+      # 🔥 关键步骤：从 OpenWrt 23.05 移植 OpenSSL 1.1 源码包
+      - name: Add OpenSSL 1.1 package from 23.05
+        run: |
+          echo "📥 正在获取 OpenSSL 1.1 源码包..."
+          # 浅克隆 OpenWrt 23.05 仓库（只拉取最新代码）
+          git clone --depth 1 -b openwrt-23.05 https://github.com/openwrt/openwrt.git /tmp/openwrt-23.05
+          # 复制 openssl1.1 目录到当前构建环境
+          cp -r /tmp/openwrt-23.05/package/libs/openssl1.1 package/libs/
+          # 清理临时目录
+          rm -rf /tmp/openwrt-23.05
+          echo "✅ OpenSSL 1.1 源码包已添加至 package/libs/openssl1.1"
+
       - name: Setup configuration and custom files
         run: |
           df -h
@@ -133,7 +144,8 @@ jobs:
 
           echo "" >> .config
           echo "# OpenClash 依赖（使用 OpenSSL 3.0）" >> .config
-          echo "CONFIG_PACKAGE_libopenssl3=m" >> .config
+          # 注意：OpenSSL 3 的包名是 libopenssl，不是 libopenssl3
+          echo "CONFIG_PACKAGE_libopenssl=y" >> .config
           echo "CONFIG_PACKAGE_openssl=m" >> .config
           echo "CONFIG_PACKAGE_coreutils=m" >> .config
           echo "CONFIG_PACKAGE_coreutils-nohup=m" >> .config
