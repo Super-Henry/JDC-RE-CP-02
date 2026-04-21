@@ -78,7 +78,7 @@ jobs:
           git clone https://github.com/vernesong/OpenClash.git package/luci-app-openclash
 
           # 🔥 加入蒲公英 VPN (OpenOray)
-          git clone https://github.com/OrayOS/OpenOray.git package/OpenOray
+          git clone https://github.com/Super-Henry/OpenOray.git package/OpenOray
           
           # 检查克隆是否成功
           if [ -d "package/OpenOray" ]; then
@@ -90,17 +90,16 @@ jobs:
           
           # 🔥 强制蒲公英使用 OpenSSL 1.1
           if [ -f "package/OpenOray/pgyvpn/Makefile" ]; then
-            # 强制使用 OpenSSL 1.1
-            sed -i 's/libopenssl-1.1/libopenssl1_1/g' package/OpenOray/pgyvpn/Makefile
-            sed -i 's/+libopenssl/+libopenssl1_1/g' package/OpenOray/pgyvpn/Makefile
-            # 移除 OpenSSL 3.0 依赖
+            # 替换依赖：libopenssl → libopenssl1.1，libopenssl-1.1 → libopenssl1.1
+            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
+            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
+            # 删除可能存在的 libopenssl3 依赖
             sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
-            # 修复可能的内核模块依赖
-            sed -i 's/+kmod-tun//g' package/OpenOray/pgyvpn/Makefile
+            # 注意：保留 kmod-tun，不要删除
             echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
           fi
-          
-          # 修复 luci 应用 Makefile
+
+          # 修复 luci-app-pgyvpn 的 Makefile
           if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
             sed -i 's/+luci-lib-ipkg//g' package/OpenOray/luci-app-pgyvpn/Makefile
             sed -i 's/+luci-lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
@@ -108,16 +107,14 @@ jobs:
             sed -i 's/+luci-compat/+luci-base/g' package/OpenOray/luci-app-pgyvpn/Makefile
             echo "✅ luci-app-pgyvpn Makefile 已修复"
           fi
-          
-          # 创建软链接
-          ln -sf ../../OpenOray/pgyvpn package/feeds/packages/pgyvpn 2>/dev/null || true
-          ln -sf ../../OpenOray/luci-app-pgyvpn package/feeds/luci/applications/luci-app-pgyvpn 2>/dev/null || true
 
-          #git clone https://github.com/dgyangxf/luci-app-vlmcsd.git package/feeds/luci/luci-app-vlmcsd
-          #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
-          #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
-          unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
-          ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
+          # 解压自定义插件到 package/ 独立目录（避免被 feeds 清理）
+          unzip builder_repo/luci-app-accesscontrol.zip -d package/luci-app-accesscontrol
+
+          # 更新 feeds
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a -p luci
+          ./scripts/feeds install -a -p packages
 
       - name: Setup configuration and custom files
         run: |
@@ -159,7 +156,7 @@ jobs:
 
           echo "" >> .config
           echo "# 蒲公英依赖（使用 OpenSSL 1.1，必须内置）" >> .config
-          echo "CONFIG_PACKAGE_libopenssl1_1=y" >> .config
+          echo "CONFIG_PACKAGE_libopenssl1.1=y" >> .config
 
           echo "" >> .config
           echo "# 必须集成内核模块" >> .config
@@ -182,12 +179,7 @@ jobs:
           echo "CONFIG_PACKAGE_libcap=m" >> .config
 
           echo "" >> .config
-          echo "# OpenSSL 配置（自动兼容蒲公英，无报错）" >> .config
-          echo "CONFIG_PACKAGE_libopenssl=y" >> .config
-          echo "CONFIG_OPENSSL_ENGINE_CRYPTO=y" >> .config
-          echo "CONFIG_OPENSSL_ENGINE_DIGEST=y" >> .config
-
-          echo "" >> .config
+          echo "# DNS 配置" >> .config
           echo "CONFIG_PACKAGE_dnsmasq-full=y" >> .config
           echo "CONFIG_PACKAGE_dnsmasq=n" >> .config
 
