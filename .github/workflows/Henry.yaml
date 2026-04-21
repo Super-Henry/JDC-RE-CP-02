@@ -115,17 +115,6 @@ jobs:
           ./scripts/feeds install -a -p luci
           ./scripts/feeds install -a -p packages
 
-      # 🔥 关键步骤：从 OpenWrt 23.05 移植 OpenSSL 1.1 源码包
-      - name: Add OpenSSL 1.1 package from 23.05
-        run: |
-          echo "📥 正在获取 OpenSSL 1.1 源码包..."
-          # 浅克隆 OpenWrt 23.05 仓库（只拉取最新代码）
-          git clone --depth 1 -b openwrt-23.05 https://github.com/openwrt/openwrt.git /tmp/openwrt-23.05
-          # 复制 openssl1.1 目录到当前构建环境
-          cp -r /tmp/openwrt-23.05/package/libs/openssl1.1 package/libs/
-          # 清理临时目录
-          rm -rf /tmp/openwrt-23.05
-          echo "✅ OpenSSL 1.1 源码包已添加至 package/libs/openssl1.1"
 
       - name: Setup configuration and custom files
         run: |
