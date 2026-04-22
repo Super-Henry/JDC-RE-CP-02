@@ -262,6 +262,19 @@ jobs:
           ./scripts/feeds update -a
           make download -j$(nproc)
 
+      # 🔥 新增：预编译 libopenssl1.1，确保 pgyvpn 打包时能找到依赖库
+      - name: Pre-build libopenssl1.1
+        run: |
+          # 注意：如果 libopenssl1.1 不在 package/OpenOray/ 下，请根据实际路径修改
+          # 常见位置：package/libs/openssl1.1 或 package/OpenOray/libopenssl1.1
+          if [ -d "package/OpenOray/libopenssl1.1" ]; then
+            make package/OpenOray/libopenssl1.1/compile -j1 V=s
+          elif [ -d "package/libs/openssl1.1" ]; then
+            make package/libs/openssl1.1/compile -j1 V=s
+          else
+            echo "⚠️ 未找到 libopenssl1.1 包路径，跳过预编译（后续可能失败）"
+          fi
+
       - name: Build firmware
         run: |
           df -h
