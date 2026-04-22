@@ -135,7 +135,20 @@ jobs:
           ./scripts/feeds install -a -p luci
           ./scripts/feeds install -a -p packages
 
-      # ========== 新增：修复 OpenSSL 1.1 Makefile（添加 PKG_SOURCE_SUBDIR） ==========
+      # ========== 新增：将 openssl1.1 复制到构建树 ==========
+      - name: Copy openssl1.1 to package/libs
+        run: |
+          if [ -d "builder_repo/openssl1.1" ]; then
+            mkdir -p package/libs
+            cp -r builder_repo/openssl1.1 package/libs/openssl1.1
+            echo "✅ Copied openssl1.1 to package/libs/openssl1.1"
+          else
+            echo "❌ builder_repo/openssl1.1 not found"
+            exit 1
+          fi
+      # ========== 复制结束 ==========
+
+      # ========== 修复 OpenSSL 1.1 Makefile（添加 PKG_SOURCE_SUBDIR） ==========
       - name: Fix OpenSSL 1.1 Makefile
         run: |
           MAKEFILE_PATH="package/libs/openssl1.1/Makefile"
