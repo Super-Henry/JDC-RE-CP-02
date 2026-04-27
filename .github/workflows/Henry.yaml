@@ -1,4 +1,4 @@
-name: Build OpenWrt Henry custom
+name: Build OpenWrt - Henry Custom
 
 permissions:
   contents: write
@@ -13,12 +13,10 @@ on:
 env:
   REMOTE_REPOSITORY: Super-Henry/openwrt
   REMOTE_BRANCH: development-version
-  CONFIG_FILE: re-cs-03.config
+  CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
   RELEASE_PREFIX: development-version
   ENV: development-version
-  NSS_PACKAGES_REPOSITORY: Super-Henry/NSS-PACKAGES
-  NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
 
 jobs:
   check_commits:
@@ -27,8 +25,6 @@ jobs:
     outputs:
       new_commits: ${{ steps.check_commits.outputs.new_commits }}
       latest_commit_sha: ${{ steps.check_commits.outputs.latest_commit_sha }}
-      nss_packages_repo_new_commits: ${{ steps.check_commits.outputs.nss_packages_repo_new_commits }}
-      nss_packages_repo_latest_commit_sha: ${{ steps.check_commits.outputs.nss_packages_repo_latest_commit_sha }}
     steps:
       - name: Check for new commits in both repositories
         id: check_commits
@@ -36,21 +32,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/commits/${{ env.REMOTE_BRANCH }}" --jq .sha)
-          packages_sha=$(gh api "repos/${{ env.NSS_PACKAGES_REPOSITORY }}/commits/${{ env.NSS_PACKAGES_REPOSITORY_BRANCH }}" --jq .sha)
           release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body 2>/dev/null || echo "")
-
           new_commits=$([[ "$release_body" == *"$latest_sha"* ]] && echo "false" || echo "true")
-          nss_new_commits=$([[ "$release_body" == *"$packages_sha"* ]] && echo "false" || echo "true")
-
           echo "new_commits=$new_commits" >> "$GITHUB_OUTPUT"
           echo "latest_commit_sha=$latest_sha" >> "$GITHUB_OUTPUT"
-          echo "nss_packages_repo_new_commits=$nss_new_commits" >> "$GITHUB_OUTPUT"
-          echo "nss_packages_repo_latest_commit_sha=$packages_sha" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build OpenWrt
     needs: check_commits
-    if: github.event_name == 'workflow_dispatch' || needs.check_commits.outputs.new_commits == 'true' || needs.check_commits.outputs.nss_packages_repo_new_commits == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.check_commits.outputs.new_commits == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
@@ -66,7 +56,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: "builder_repo"
-          
+
       - name: Add custom patches
         run: |
           df -hT
@@ -77,7 +67,7 @@ jobs:
               [ -f "$patch" ] && git apply --verbose "$patch"
             done
           fi
-            
+
       - name: Update and install feeds
         run: |
           df -h
@@ -184,18 +174,20 @@ jobs:
           # 运行 oldconfig 接受新选项
           make oldconfig
           
-          # 然后添加其他插件配置
+          # 然后添加其他插件配置（保留原有全部 echo 命令）
           echo "CONFIG_USE_APK=y" >> .config
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
 
-          echo "CONFIG_PACKAGE_luci-app-openclash=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2=y" >> .config
-          echo "CONFIG_PACKAGE_pgyvpn=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-pgyvpn=y" >> .config
-          # 花生壳
-          echo "CONFIG_PACKAGE_phtunnel=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-phtunnel=y" >> .config
+          # 插件全部 =m 不占用固件空间
+          echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
+          # 蒲公英使用 OpenSSL 1.1
+          echo "CONFIG_PACKAGE_pgyvpn=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
+          # 花生壳使用 OpenSSL 1.1
+          echo "CONFIG_PACKAGE_phtunnel=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-phtunnel=m" >> .config
 
           echo "CONFIG_PACKAGE_luci-compat=y" >> .config
           echo "CONFIG_PACKAGE_luci-base=y" >> .config
@@ -203,24 +195,24 @@ jobs:
           echo "" >> .config
           echo "# OpenClash 依赖（OpenSSL 3.0）" >> .config
           echo "CONFIG_PACKAGE_openssl=y" >> .config
-          echo "CONFIG_PACKAGE_coreutils=y" >> .config
-          echo "CONFIG_PACKAGE_coreutils-nohup=y" >> .config
-          echo "CONFIG_PACKAGE_bash=y" >> .config
-          echo "CONFIG_PACKAGE_jsonfilter=y" >> .config
-          echo "CONFIG_PACKAGE_ca-certificates=y" >> .config
+          echo "CONFIG_PACKAGE_coreutils=m" >> .config
+          echo "CONFIG_PACKAGE_coreutils-nohup=m" >> .config
+          echo "CONFIG_PACKAGE_bash=m" >> .config
+          echo "CONFIG_PACKAGE_jsonfilter=m" >> .config
+          echo "CONFIG_PACKAGE_ca-certificates=m" >> .config
 
           echo "" >> .config
-          echo "# PassWall2 全部组件（OpenSSL 3.0）" >> .config
-          echo "CONFIG_PACKAGE_passwall2=y" >> .config
-          echo "CONFIG_PACKAGE_xray-core=y" >> .config
-          echo "CONFIG_PACKAGE_xray-plugin=y" >> .config
-          echo "CONFIG_PACKAGE_sing-box=y" >> .config
-          echo "CONFIG_PACKAGE_hysteria=y" >> .config
-          echo "CONFIG_PACKAGE_naiveproxy=y" >> .config
-          echo "CONFIG_PACKAGE_tuic-client=y" >> .config
-          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-redir=y" >> .config
-          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-tunnel=y" >> .config
-          echo "CONFIG_PACKAGE_shadowsocksr-libev-ssr-redir=y" >> .config
+          echo "# PassWall2 依赖（使用 OpenSSL 3.0）" >> .config
+          echo "CONFIG_PACKAGE_passwall2=m" >> .config
+          echo "CONFIG_PACKAGE_xray-core=m" >> .config
+          echo "CONFIG_PACKAGE_xray-plugin=m" >> .config
+          echo "CONFIG_PACKAGE_sing-box=m" >> .config
+          echo "CONFIG_PACKAGE_hysteria=m" >> .config
+          echo "CONFIG_PACKAGE_naiveproxy=m" >> .config
+          echo "CONFIG_PACKAGE_tuic-client=m" >> .config
+          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-redir=m" >> .config
+          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-tunnel=m" >> .config
+          echo "CONFIG_PACKAGE_shadowsocksr-libev-ssr-redir=m" >> .config
 
           echo "" >> .config
           echo "# 必须集成内核模块" >> .config
@@ -239,8 +231,8 @@ jobs:
 
           echo "" >> .config
           echo "# 辅助组件" >> .config
-          echo "CONFIG_PACKAGE_ipset=y" >> .config
-          echo "CONFIG_PACKAGE_libcap=y" >> .config
+          echo "CONFIG_PACKAGE_ipset=m" >> .config
+          echo "CONFIG_PACKAGE_libcap=m" >> .config
           echo "CONFIG_PACKAGE_libstdcpp=y" >> .config   # 花生壳可能需要
 
           echo "" >> .config
@@ -300,7 +292,7 @@ jobs:
       #       gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" 2>/dev/null || true
       #     done
 
-      # ========== 清理 OpenSSL 1.1 构建目录 ==========
+      # ========== 清理 OpenSSL 1.1 构建目录（保留下载的源码） ==========
       - name: Clean OpenSSL 1.1 build dirs
         run: |
           echo "🧹 Cleaning OpenSSL 1.1 build directories..."
@@ -318,10 +310,10 @@ jobs:
         env: 
           CMAKE_POLICY_VERSION_MINIMUM: 3.5
         run: |
-          df -hT
+          df -h
           make check -j$(nproc) FIXUP=1 V=s
           make -j$(nproc) || make -j1 V=s  # Retry single-threaded on failure
-          tar cvzf bin/targets/qualcommax/ipq50xx/snapshots.tar.gz -C bin packages/aarch64_cortex-a53 targets/qualcommax/ipq50xx/packages
+          tar cvzf bin/targets/ramips/mt7621/snapshots.tar.gz -C bin packages/mipsel_24kc targets/ramips/mt7621/packages
 
       - name: Verify packages in firmware
         run: |
@@ -343,13 +335,13 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ipq50xx-images
-          path: bin/targets/qualcommax/ipq50xx
+          name: mt7621-images
+          path: bin/targets/ramips/mt7621
 
       - name: Check disk space usage
         if: always()
-        run: df -hT
-        
+        run: df -h
+
   release:
     name: Create release
     needs: [check_commits, build]
@@ -359,7 +351,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: ipq50xx-images
+          name: mt7621-images
           path: firmware
       - name: Set release date
         run: echo "RELEASE_DATE=$(date +%F)" >> $GITHUB_ENV
@@ -379,18 +371,23 @@ jobs:
             **Branch:** `${{ env.REMOTE_BRANCH }}`
             **Commit:** `${{ needs.check_commits.outputs.latest_commit_sha }}`
 
-            ### 📦 NSS Packages
-            **Repository:** [${{ env.NSS_PACKAGES_REPOSITORY }}](https://github.com/${{ env.NSS_PACKAGES_REPOSITORY }})
-            **Branch:** `${{ env.NSS_PACKAGES_REPOSITORY_BRANCH }}`
-            **Commit:** `${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }}`
-
             ### 📝 Build Information
-            - **Target:** [JDCloud RE-CS-03 后羿/哪吒]
+            - **Target:** [JDCloud RE-CP-02 鲁班]
+            - **固件大小:** 小于 16MB
+            - **OpenSSL 配置:** 蒲公英 & 花生壳使用 1.1，其他使用 3.0
             - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
+
+            ### 📦 插件说明（均为离线IPK，不占固件空间）
+            - Passwall2 全套 (OpenSSL 3.0)
+            - OpenClash 全套 (OpenSSL 3.0)
+            - 蒲公英 VPN pgyvpn (OpenSSL 1.1) ✅
+            - 花生壳 phtunnel (OpenSSL 1.1) ✅
+            - Argon 主题 + 配置
 
             ### 📋 Notes
             - Automated build triggered by ${{ github.event_name }}
-            - Previous releases are automatically cleaned up (keeping latest 5)
+            - 插件均为离线 IPK，刷机后需手动安装
+            - 固件本身小于 16MB
             ---
             _Generated by GitHub Actions 🤖_
 
@@ -398,10 +395,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          df -hT
-          gh api repos/${{ github.repository }}/releases --paginate --jq '.[5:10] | .[] | "\(.id) \(.tag_name)"' | while read id tag; do
+          gh api repos/${{ github.repository }}/releases --paginate --jq '.[5:] | .[] | "\(.id) \(.tag_name)"' | while read id tag; do
             day=$(echo "$tag" |cut -d'-' -f4)
-            if [ $day -ne "02" ] && [ $day -ne "09" ] && [ $day -ne "16" ] && [ $day -ne "24" ]; then
+            if [ $day -ne "01" ] && [ $day -ne "08" ] && [ $day -ne "15" ] && [ $day -ne "23" ]; then
               echo "Removing old release $tag ..."
               gh api -X DELETE "repos/${{ github.repository }}/releases/$id" && gh api -X DELETE "repos/${{ github.repository }}/git/refs/tags/$tag" 2>/dev/null || true
             fi
