@@ -171,6 +171,14 @@ jobs:
           
           # 强制加入 libopenssl1.1 的配置（确保包被识别）
           echo "CONFIG_PACKAGE_libopenssl1.1=y" >> .config
+
+          # ==============================================
+          # 🟢 【已添加】开启硬浮点，匹配蒲公英二进制文件
+          # ==============================================
+          echo "CONFIG_SOFT_FLOAT=n" >> .config
+          echo "CONFIG_HARD_FLOAT=y" >> .config
+          echo "CONFIG_MIPS_FPU_EMULATOR=n" >> .config
+          
           # 运行 oldconfig 接受新选项
           make oldconfig
           
@@ -339,7 +347,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: mt7621-images
+          name: mt721-images
           path: bin/targets/ramips/mt7621
 
       - name: Check disk space usage
@@ -377,6 +385,7 @@ jobs:
 
             ### 📝 Build Information
             - **Target:** [JDCloud RE-CP-02 鲁班]
+            - **浮点模式:** 硬浮点 (Hard Float) ✅
             - **固件大小:** 小于 16MB
             - **OpenSSL 配置:** 蒲公英 & 花生壳使用 1.1，其他使用 3.0
             - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
