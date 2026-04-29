@@ -347,7 +347,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: mt721-images
+          name: mt7621-images
           path: bin/targets/ramips/mt7621
 
       - name: Check disk space usage
