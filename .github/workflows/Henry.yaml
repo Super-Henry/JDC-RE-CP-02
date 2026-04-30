@@ -89,13 +89,14 @@ jobs:
             exit 1
           fi
           
-          # === 处理蒲公英 (pgyvpn) ===
-          if [ -f "package/OpenOray/pgyvpn/Makefile" ]; then
-            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
-            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
-            sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
-            echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
-          fi
+          # === 已禁用原版 pgyvpn，使用 pgyvpn-mt7621 ===
+          # 以下内容全部注释，不修改原版
+          # if [ -f "package/OpenOray/pgyvpn/Makefile" ]; then
+          #   sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
+          #   sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
+          #   sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
+          #   echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
+          # fi
 
           # 修复 luci-app-pgyvpn 的 Makefile
           if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
@@ -203,8 +204,8 @@ jobs:
           # 插件全部 =m 不占用固件空间
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
-          # 蒲公英使用 OpenSSL 1.1
-          echo "CONFIG_PACKAGE_pgyvpn=m" >> .config
+          # 蒲公英使用本地版 pgyvpn-mt7621
+          echo "CONFIG_PACKAGE_pgyvpn-mt7621=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-pgyvpn-zh-cn=m" >> .config
           # 花生壳使用 OpenSSL 1.1
@@ -352,6 +353,8 @@ jobs:
           echo "检查 OpenSSL 1.1 库..."
           find bin/ -name "*.ipk" | grep -E "(libopenssl1.1)" || echo "⚠️ 未找到 libopenssl1.1"
           echo ""
+          echo "检查 蒲公英 VPN 包..."
+          find bin/ -name "pgyvpn-mt7621*"
           echo "检查 蒲公英 Web 包..."
           find bin/ -name "luci-app-pgyvpn*"
           find bin/ -name "luci-i18n-pgyvpn*"
@@ -406,7 +409,7 @@ jobs:
             ### 📦 插件说明（均为离线IPK，不占固件空间）
             - Passwall2 全套 (OpenSSL 3.0)
             - OpenClash 全套 (OpenSSL 3.0)
-            - 蒲公英 VPN pgyvpn (OpenSSL 1.1) ✅
+            - 蒲公英 VPN pgyvpn-mt7621 (OpenSSL 1.1本地musl版 ✅)
             - 蒲公英 Web 面板 luci-app-pgyvpn ✅
             - 花生壳 phtunnel (OpenSSL 1.1) ✅
             - Argon 主题 + 配置
