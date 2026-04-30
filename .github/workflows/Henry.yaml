@@ -173,11 +173,24 @@ jobs:
           echo "CONFIG_PACKAGE_libopenssl1.1=y" >> .config
 
           # ==============================================
-          # 🟢 【已添加】开启硬浮点，匹配蒲公英二进制文件
+          # 已改回 软浮点 完美适配官方蒲公英 mipsel-sf
           # ==============================================
-          echo "CONFIG_SOFT_FLOAT=n" >> .config
-          echo "CONFIG_HARD_FLOAT=y" >> .config
+          echo "CONFIG_SOFT_FLOAT=y" >> .config
+          echo "CONFIG_HARD_FLOAT=n" >> .config
           echo "CONFIG_MIPS_FPU_EMULATOR=n" >> .config
+
+          # ==============================================
+          # 全局修复 pre-install 脚本报错 / ubus/service缺失
+          # ==============================================
+          echo "CONFIG_PACKAGE_procd=y" >> .config
+          echo "CONFIG_PACKAGE_ubus=y" >> .config
+          echo "CONFIG_PACKAGE_ubusd=y" >> .config
+          echo "CONFIG_PACKAGE_service=y" >> .config
+          echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
+          echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
+          echo "CONFIG_PACKAGE_blockd=y" >> .config
+          echo "CONFIG_PACKAGE_lsblk=y" >> .config
+          echo "CONFIG_PACKAGE_dmidecode=y" >> .config
           
           # 运行 oldconfig 接受新选项
           make oldconfig
@@ -385,7 +398,7 @@ jobs:
 
             ### 📝 Build Information
             - **Target:** [JDCloud RE-CP-02 鲁班]
-            - **浮点模式:** 硬浮点 (Hard Float) ✅
+            - **浮点模式:** 软浮点 (Soft Float) ✅
             - **固件大小:** 小于 16MB
             - **OpenSSL 配置:** 蒲公英 & 花生壳使用 1.1，其他使用 3.0
             - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
