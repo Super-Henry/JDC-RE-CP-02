@@ -183,15 +183,15 @@ jobs:
           # ==============================================
           # 全局修复 pre-install 脚本报错 / ubus/service缺失
           # ==============================================
-          echo "CONFIG_PACKAGE_procd=y" >> .config
-          echo "CONFIG_PACKAGE_ubus=y" >> .config
-          echo "CONFIG_PACKAGE_ubusd=y" >> .config
-          echo "CONFIG_PACKAGE_service=y" >> .config
-          echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
-          echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
-          echo "CONFIG_PACKAGE_blockd=y" >> .config
-          echo "CONFIG_PACKAGE_lsblk=y" >> .config
-          echo "CONFIG_PACKAGE_dmidecode=y" >> .config
+          #echo "CONFIG_PACKAGE_procd=y" >> .config
+          #echo "CONFIG_PACKAGE_ubus=y" >> .config
+          #echo "CONFIG_PACKAGE_ubusd=y" >> .config
+          #echo "CONFIG_PACKAGE_service=y" >> .config
+          #echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
+          #echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
+          #echo "CONFIG_PACKAGE_blockd=y" >> .config
+          #echo "CONFIG_PACKAGE_lsblk=y" >> .config
+          #echo "CONFIG_PACKAGE_dmidecode=y" >> .config
           
           # 运行 oldconfig 接受新选项
           make oldconfig
