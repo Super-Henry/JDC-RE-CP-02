@@ -205,7 +205,7 @@ jobs:
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
           # 蒲公英使用本地版 pgyvpn-mt7621
-          echo "CONFIG_PACKAGE_pgyvpn-mt7621=m" >> .config
+          #echo "CONFIG_PACKAGE_pgyvpn-mt7621=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-pgyvpn-zh-cn=m" >> .config
           # 花生壳使用 OpenSSL 1.1
