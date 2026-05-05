@@ -89,25 +89,25 @@ jobs:
             exit 1
           fi
           
-          # === 已禁用原版 pgyvpn，使用 pgyvpn-mt7621 ===
-          # 以下内容全部注释，不修改原版
-          # if [ -f "package/OpenOray/pgyvpn/Makefile" ]; then
-          #   sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
-          #   sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
-          #   sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
-          #   echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
-          # fi
+          # === 处理蒲公英 (pgyvpn) ===
+          if [ -f "package/OpenOray/pgyvpn/Makefile" ]; then
+            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
+            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
+            sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
+            echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
+          fi
 
-          # 🔥 只注释：修复 luci-app-pgyvpn 的 Makefile
-          # if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
-          #   sed -i 's/+luci-lib-ipkg//g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   sed -i 's/+luci-lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   sed -i 's/+lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   sed -i 's/+luci-compat/+luci-base/g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   echo "✅ luci-app-pgyvpn Makefile 已修复"
-          # fi
+
+          # 修复 luci-app-pgyvpn 的 Makefile
+          if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
+            sed -i 's/+luci-lib-ipkg//g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+luci-lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+luci-compat/+luci-base/g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
+            echo "✅ luci-app-pgyvpn Makefile 已修复"
+          fi
 
           # === 处理花生壳 (phtunnel) ===
           if [ -f "package/OpenOray/phtunnel/Makefile" ]; then
@@ -183,15 +183,15 @@ jobs:
           # ==============================================
           # 全局修复 pre-install 脚本报错 / ubus/service缺失
           # ==============================================
-          #echo "CONFIG_PACKAGE_procd=y" >> .config
-          #echo "CONFIG_PACKAGE_ubus=y" >> .config
-          #echo "CONFIG_PACKAGE_ubusd=y" >> .config
-          #echo "CONFIG_PACKAGE_service=y" >> .config
-          #echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
-          #echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
-          #echo "CONFIG_PACKAGE_blockd=y" >> .config
-          #echo "CONFIG_PACKAGE_lsblk=y" >> .config
-          #echo "CONFIG_PACKAGE_dmidecode=y" >> .config
+          echo "CONFIG_PACKAGE_procd=y" >> .config
+          echo "CONFIG_PACKAGE_ubus=y" >> .config
+          echo "CONFIG_PACKAGE_ubusd=y" >> .config
+          echo "CONFIG_PACKAGE_service=y" >> .config
+          echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
+          echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
+          echo "CONFIG_PACKAGE_blockd=y" >> .config
+          echo "CONFIG_PACKAGE_lsblk=y" >> .config
+          echo "CONFIG_PACKAGE_dmidecode=y" >> .config
           
           # 运行 oldconfig 接受新选项
           make oldconfig
@@ -205,10 +205,10 @@ jobs:
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
           # 蒲公英使用本地版 pgyvpn-mt7621
-          #echo "CONFIG_PACKAGE_pgyvpn-mt7621=m" >> .config
-          #echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
-          #echo "CONFIG_PACKAGE_luci-i18n-pgyvpn-zh-cn=m" >> .config
-          
+          echo "CONFIG_PACKAGE_pgyvpn=m" >> .config
+          echo "CONFIG_PACKAGE_pgyvpn-mt7621=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-pgyvpn-zh-cn=m" >> .config
           # 花生壳使用 OpenSSL 1.1
           echo "CONFIG_PACKAGE_phtunnel=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-phtunnel=m" >> .config
