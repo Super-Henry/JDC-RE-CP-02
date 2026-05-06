@@ -270,9 +270,6 @@ jobs:
           echo "CONFIG_PACKAGE_luci-mod-system-mountpoints=y" >> .config
           echo "CONFIG_PACKAGE_block-mount=y" >> .config
 
-          # 🔥 开启生成 sysupgrade 升级固件（仅添加这一行）
-          echo "CONFIG_TARGET_ROOTFS_SQUASHFS=y" >> .config
-
           # 最后再运行一次 defconfig 确保依赖正确
           make defconfig -j$(nproc)
           
