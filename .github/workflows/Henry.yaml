@@ -89,25 +89,25 @@ jobs:
             exit 1
           fi
           
-          # === 已禁用原版 pgyvpn，使用 pgyvpn-mt7621 ===
-          # 以下内容全部注释，不修改原版
-          # if [ -f "package/OpenOray/pgyvpn/Makefile" ]; then
-          #   sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
-          #   sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
-          #   sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
-          #   echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
-          # fi
+          # === 处理蒲公英 (pgyvpn) ===
+          if [ -f "package/OpenOray/pgyvpn/Makefile" ]; then
+            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
+            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
+            sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
+            echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
+          fi
 
-          # 🔥 只注释：修复 luci-app-pgyvpn 的 Makefile
-          # if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
-          #   sed -i 's/+luci-lib-ipkg//g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   sed -i 's/+luci-lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   sed -i 's/+lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   sed -i 's/+luci-compat/+luci-base/g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
-          #   echo "✅ luci-app-pgyvpn Makefile 已修复"
-          # fi
+
+          # 修复 luci-app-pgyvpn 的 Makefile
+          if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
+            sed -i 's/+luci-lib-ipkg//g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+luci-lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+luci-compat/+luci-base/g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
+            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
+            echo "✅ luci-app-pgyvpn Makefile 已修复"
+          fi
 
           # === 处理花生壳 (phtunnel) ===
           if [ -f "package/OpenOray/phtunnel/Makefile" ]; then
@@ -218,7 +218,7 @@ jobs:
 
           echo "" >> .config
           echo "# OpenClash 依赖（OpenSSL 3.0）" >> .config
-          echo "CONFIG_PACKAGE_openssl=m" >> .config
+          echo "CONFIG_PACKAGE_openssl=y" >> .config
           echo "CONFIG_PACKAGE_coreutils=m" >> .config
           echo "CONFIG_PACKAGE_coreutils-nohup=m" >> .config
           echo "CONFIG_PACKAGE_bash=m" >> .config
@@ -270,8 +270,8 @@ jobs:
           echo "CONFIG_PACKAGE_luci-mod-system-mountpoints=y" >> .config
           echo "CONFIG_PACKAGE_block-mount=y" >> .config
 
-          # 最后再运行一次 defconfig 确保依赖正确
-          make defconfig -j$(nproc)
+          # 已删掉末尾害人的 make defconfig，只保留 oldconfig 不篡改配置
+          make oldconfig -j$(nproc)
           
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && cp -r builder_repo/${{ env.CUSTOM_FILES_PATH }}. ${{ env.CUSTOM_FILES_PATH }} || true
