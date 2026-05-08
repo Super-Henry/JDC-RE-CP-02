@@ -171,7 +171,7 @@ jobs:
           make defconfig -j$(nproc)
           
           # 强制加入 libopenssl1.1 的配置（确保包被识别）
-          echo "CONFIG_PACKAGE_libopenssl1.1=m" >> .config
+          echo "CONFIG_PACKAGE_libopenssl1.1=y" >> .config
 
           # ==============================================
           # 已改回 软浮点 完美适配官方蒲公英 mipsel-sf
@@ -183,15 +183,15 @@ jobs:
           # ==============================================
           # 全局修复 pre-install 脚本报错 / ubus/service缺失
           # ==============================================
-          #echo "CONFIG_PACKAGE_procd=y" >> .config
-          #echo "CONFIG_PACKAGE_ubus=y" >> .config
+          echo "CONFIG_PACKAGE_procd=y" >> .config
+          echo "CONFIG_PACKAGE_ubus=y" >> .config
           echo "CONFIG_PACKAGE_ubusd=y" >> .config
-          #echo "CONFIG_PACKAGE_service=y" >> .config
-          #echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
-          #echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
-          #echo "CONFIG_PACKAGE_blockd=y" >> .config
-          #echo "CONFIG_PACKAGE_lsblk=y" >> .config
-          #echo "CONFIG_PACKAGE_dmidecode=y" >> .config
+          echo "CONFIG_PACKAGE_service=y" >> .config
+          echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
+          echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
+          echo "CONFIG_PACKAGE_blockd=y" >> .config
+          echo "CONFIG_PACKAGE_lsblk=y" >> .config
+          echo "CONFIG_PACKAGE_dmidecode=y" >> .config
           
           # 运行 oldconfig 接受新选项
           make oldconfig
@@ -240,10 +240,10 @@ jobs:
 
           echo "" >> .config
           echo "# 必须集成内核模块" >> .config
-          echo "CONFIG_PACKAGE_kmod-tun=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-inet-diag=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-nf-tproxy=m" >> .config
-          echo "CONFIG_PACKAGE_kmod-ipt-tproxy=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-tun=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-inet-diag=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-nf-tproxy=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-ipt-tproxy=y" >> .config
 
           echo "" >> .config
           echo "# 必要工具" >> .config
@@ -261,7 +261,7 @@ jobs:
 
           echo "" >> .config
           echo "# DNS 配置" >> .config
-          echo "CONFIG_PACKAGE_dnsmasq-full=m" >> .config
+          echo "CONFIG_PACKAGE_dnsmasq-full=y" >> .config
           echo "CONFIG_PACKAGE_dnsmasq=n" >> .config
 
           echo "" >> .config
@@ -270,8 +270,8 @@ jobs:
           echo "CONFIG_PACKAGE_luci-mod-system-mountpoints=y" >> .config
           echo "CONFIG_PACKAGE_block-mount=y" >> .config
 
-          # 已删掉末尾害人的 make defconfig，只保留 oldconfig 不篡改配置
-          make oldconfig -j$(nproc)
+          # 最后再运行一次 defconfig 确保依赖正确
+          make defconfig -j$(nproc)
           
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && cp -r builder_repo/${{ env.CUSTOM_FILES_PATH }}. ${{ env.CUSTOM_FILES_PATH }} || true
