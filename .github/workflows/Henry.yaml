@@ -392,18 +392,20 @@ jobs:
         with:
           name: mt7621-images
           path: firmware
-      - name: Set release date
-        run: echo "RELEASE_DATE=$(date +%F)" >> $GITHUB_ENV
+      - name: Set release date with timestamp
+        run: |
+          echo "RELEASE_DATE=$(date +%F)" >> $GITHUB_ENV
+          echo "RELEASE_TIME=$(date +%H%M%S)" >> $GITHUB_ENV
       - name: Publish release
         uses: softprops/action-gh-release@master
         with:
           files: firmware/*
-          tag_name: ${{ env.RELEASE_PREFIX }}-${{ env.RELEASE_DATE }}
-          name: 🚀 OpenWrt Build Release ${{ env.RELEASE_DATE }}
+          tag_name: ${{ env.RELEASE_PREFIX }}-${{ env.RELEASE_DATE }}-${{ env.RELEASE_TIME }}
+          name: 🚀 OpenWrt Build Release ${{ env.RELEASE_DATE }} ${{ env.RELEASE_TIME }}
           body: |
             ## 📦 OpenWrt Automated Build Release
 
-            **Build Date:** ${{ env.RELEASE_DATE }}
+            **Build Date:** ${{ env.RELEASE_DATE }} ${{ env.RELEASE_TIME }}
 
             ### 🔄 Main Repository
             **Repository:** [${{ env.REMOTE_REPOSITORY }}](https://github.com/${{ env.REMOTE_REPOSITORY }})
