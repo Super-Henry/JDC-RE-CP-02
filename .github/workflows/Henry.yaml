@@ -51,6 +51,7 @@ jobs:
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
           ref: ${{ env.REMOTE_BRANCH }}
+          fetch-depth: 0
 
       - name: Checkout current repository
         uses: actions/checkout@v4
@@ -232,7 +233,11 @@ jobs:
           echo "CONFIG_PACKAGE_xray-plugin=m" >> .config
           echo "CONFIG_PACKAGE_sing-box=m" >> .config
           echo "CONFIG_PACKAGE_hysteria=m" >> .config
-          echo "CONFIG_PACKAGE_naiveproxy=m" >> .config
+          
+          # 🔥 🔥 🔥 这里关闭 naiveproxy 解决 404 错误 🔥 🔥 🔥
+          echo "CONFIG_PACKAGE_naiveproxy=n" >> .config
+          echo "CONFIG_PACKAGE_passwall2_naiveproxy=n" >> .config
+          
           echo "CONFIG_PACKAGE_tuic-client=m" >> .config
           echo "CONFIG_PACKAGE_shadowsocks-libev-ss-redir=m" >> .config
           echo "CONFIG_PACKAGE_shadowsocks-libev-ss-tunnel=m" >> .config
