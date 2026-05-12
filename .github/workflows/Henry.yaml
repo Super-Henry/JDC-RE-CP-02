@@ -74,11 +74,13 @@ jobs:
           df -h
 
           ###########################################################################
-          # 🔥 固定 feeds 到 2026年4月精简版 → 固件体积回到 <16MB（只加了这段）
+          # 🔥 固定 feeds 到 2026年4月精简版 → 固件体积回到 <16MB（已修复）
           ###########################################################################
           rm -rf feeds package/feeds
           make distclean
 
+          # 🔥 修复：把你仓库里的固定版本 feeds 复制回来（只加了这一行）
+          cp builder_repo/feeds.conf.default ./feeds.conf.default
 
           #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/feeds/luci/luci-app-passwall2
