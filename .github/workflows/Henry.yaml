@@ -395,7 +395,7 @@ jobs:
       - name: Set release date with timestamp
         run: |
           echo "RELEASE_DATE=$(date +%F)" >> $GITHUB_ENV
-          echo "RELEASE_TIME=$(date +%H%M%S)" >> $GITHUB_ENV
+          echo "RELEASE_TIME=$(date +%H:%M:%S)" >> $GITHUB_ENV
       - name: Publish release
         uses: softprops/action-gh-release@master
         with:
