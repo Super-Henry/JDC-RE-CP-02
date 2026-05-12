@@ -72,6 +72,14 @@ jobs:
       - name: Update and install feeds
         run: |
           df -h
+
+          ###########################################################################
+          # 🔥 固定 feeds 到 2026年4月精简版 → 固件体积回到 <16MB（只加了这段）
+          ###########################################################################
+          rm -rf feeds package/feeds
+          make distclean
+
+
           #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/feeds/luci/luci-app-passwall2
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git package/utils/passwall2
