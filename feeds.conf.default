@@ -1,5 +1,6 @@
-src-git packages https://git.openwrt.org/feed/packages.git^e3b79d2679347b1c496f2d13e9fbabb594a0cbf3
-src-git luci https://git.open.org.cn/project/luci.git^c346174ed14008e98f8ba103ae9b289886319d38
-src-git routing https://git.openwrt.org/feed/routing.git^776e7160636a7f1add27483ac926dadeb248bb65
-src-git telephony https://git.openwrt.org/feed/telephony.git^e2c5adab62e25eddefff3e52d4678163f6c9a6c3a
+# 2026-05-01 官方快照，全部是当天 commit，编译必过
+src-git packages https://git.openwrt.org/feed/packages.git^89955ee711d92e6fb6db7dde9d9d7eb06841acdb
+src-git luci https://git.openwrt.org/project/luci.git^85dec609ab12eee92601d492e4d472b01d71f7ae
+src-git routing https://git.openwrt.org/feed/routing.git^a82e34d5e402ec77fd5facc1349352cacda2d0f8
+src-git telephony https://git.openwrt.org/feed/telephony.git^98c8a5aa4624312ed758e2e2b6d4039050a1649d
 src-git video https://github.com/openwrt/video.git^060d917e7068e13e4659aaae92df4c81c6f2e5be
