@@ -69,10 +69,20 @@ jobs:
             done
           fi
 
+      # ==============================
+      # 🔥 已加入：使用你自己的 feeds.conf.default
+      # ==============================
+      - name: Load custom feeds config
+        run: |
+          df -h
+          rm -rf feeds package/feeds tmp
+          make distclean
+          [ -f builder_repo/feeds.conf.default ] && cp -f builder_repo/feeds.conf.default feeds.conf.default
+          echo "✅ 已加载自定义 feeds 配置，锁定版本成功"
+
       - name: Update and install feeds
         run: |
           df -h
-
 
           #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/feeds/luci/luci-app-passwall2
@@ -99,7 +109,6 @@ jobs:
             sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
             echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
           fi
-
 
           # 修复 luci-app-pgyvpn 的 Makefile
           if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
