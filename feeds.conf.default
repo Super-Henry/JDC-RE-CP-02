@@ -1,6 +1,6 @@
 # 2026-05-13 Henry
-src-git packages https://github.com/Super-Henry/Packages.git^development-version
-src-git luci https://github.com/Super-Henry/Luci.git^development-version
-src-git routing https://github.com/Super-Henry/Routing.git^development-version
-src-git telephony https://github.com/Super-Henry/Telephony.git^development-version
-src-git video https://github.com/Super-Henry/Video.git^development-version
+src-git packages https://github.com/Super-Henry/Packages.git;development-version
+src-git luci https://github.com/Super-Henry/Luci.git;development-version
+src-git routing https://github.com/Super-Henry/Routing.git;development-version
+src-git telephony https://github.com/Super-Henry/Telephony.git;development-version
+src-git video https://github.com/Super-Henry/Video.git;development-version
