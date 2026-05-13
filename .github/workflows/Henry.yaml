@@ -73,8 +73,6 @@ jobs:
         run: |
           df -h
 
-          # 🔥 修复：把你仓库里的固定版本 feeds 复制回来（只加了这一行）
-          cp builder_repo/feeds.conf.default ./feeds.conf.default
 
           #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
           git clone https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/feeds/luci/luci-app-passwall2
