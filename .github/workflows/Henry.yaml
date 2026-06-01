@@ -87,6 +87,8 @@ jobs:
           #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
           #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
+          # fix the passwall2 Makefile
+          sed -i -e '/^endchoice/i\\n\tconfig PACKAGE_$(PKG_NAME)_Basic_Core_None\n\t\tbool "None"' package/feeds/luci/luci-app-passwall2/luci-app-passwall2/Makefile
           ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
 
       - name: Setup configuration and custom files
