@@ -1,4 +1,4 @@
-diff --git a/package/boot/uboot-tools/uboot-envtools/files/ramips b/package/boot/uboot-tools/uboot-envtools/files/ramips
+diff --git a/package/boot/uboot-tools/uboot-envtools/files/ramips b/package/boot/uboot-envtools/files/ramips
 index 5d6cbe3936..d5edf67ca4 100644
 --- a/package/boot/uboot-tools/uboot-envtools/files/ramips
 +++ b/package/boot/uboot-tools/uboot-envtools/files/ramips
