@@ -1,11 +1,11 @@
 diff --git a/package/boot/uboot-envtools/files/ramips b/package/boot/uboot-envtools/files/ramips
-index 5d6cbe3936..d5edf67ca4 100644
+index 08f8faa..f2275f1 100644
 --- a/package/boot/uboot-envtools/files/ramips
 +++ b/package/boot/uboot-envtools/files/ramips
-@@ -33,6 +33,7 @@ allnet,all0256n-8m|\
+@@ -31,6 +31,7 @@ alfa-network,ax1800rm|\
+ allnet,all0256n-4m|\
+ allnet,all0256n-8m|\
  allnet,all5002|\
- asiarf,ap7621-004-v3|\
- plasmacloud,pax1800-lite|\
 +jdcloud,luban|\
  yuncore,ax820)
  	ubootenv_add_uci_config "/dev/mtd1" "0x0" "0x10000" "0x10000"
@@ -209,5 +209,6 @@ index fedb31571a..eaec1a7623 100644
  	xiaomi,redmi-router-ac2100|\
 +	jdcloud,luban|\
  	z-router,zr-2660|\
+ 	z-router,zr-2662|\
  	zyxel,wsm20)
  		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "wan"
