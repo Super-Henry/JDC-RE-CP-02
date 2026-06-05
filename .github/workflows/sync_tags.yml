@@ -1,0 +1,16 @@
+name: 同步上游OpenWrt全部Tag
+on:
+  workflow_dispatch: # 手动点击运行
+jobs:
+  sync_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取仓库全量代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 绑定上游源+同步所有标签
+        run: |
+          git remote add upstream https://github.com/openwrt/openwrt.git
+          git fetch upstream --tags
+          git push origin --tags --force-with-lease
