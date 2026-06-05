@@ -7,16 +7,16 @@ permissions:
 on:
   #push:
     #branches:
-      #- development-version
+      #- openwrt-24.10
   workflow_dispatch:
 
 env:
   REMOTE_REPOSITORY: Super-Henry/openwrt
-  REMOTE_BRANCH: development-version
+  REMOTE_BRANCH: v24.10.7
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
-  RELEASE_PREFIX: development-version
-  ENV: development-version
+  RELEASE_PREFIX: openwrt-24.10
+  ENV: openwrt-24.10
 
 jobs:
   check_commits:
@@ -31,7 +31,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/commits/${{ env.REMOTE_BRANCH }}" --jq .sha)
+          latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/git/ref/tags/${{ env.REMOTE_BRANCH }}" --jq .object.sha)
           release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body 2>/dev/null || echo "")
           new_commits=$([[ "$release_body" == *"$latest_sha"* ]] && echo "false" || echo "true")
           echo "new_commits=$new_commits" >> "$GITHUB_OUTPUT"
@@ -51,7 +51,7 @@ jobs:
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
           ref: ${{ env.REMOTE_BRANCH }}
-          fetch-depth: 0
+          fetch-tags: true
 
       - name: Checkout current repository
         uses: actions/checkout@v4
