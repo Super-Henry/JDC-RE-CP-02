@@ -91,54 +91,6 @@ jobs:
           git clone https://github.com/jerrykuku/luci-app-argon-config.git package/feeds/luci/luci-app-argon-config
           git clone https://github.com/Super-Henry/OpenClash.git package/luci-app-openclash
 
-          # 🔥 加入蒲公英 VPN (OpenOray) - 包含蒲公英、花生壳、向日葵
-          git clone https://github.com/Super-Henry/OpenOray.git package/OpenOray
-          
-          # 检查克隆是否成功
-          if [ -d "package/OpenOray" ]; then
-            echo "✅ OpenOray 仓库克隆成功"
-          else
-            echo "❌ OpenOray 仓库克隆失败"
-            exit 1
-          fi
-          
-          # === 处理蒲公英 (pgyvpn) ===
-          if [ -f "package/OpenOray/pgyvpn/Makefile" ]; then
-            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
-            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
-            sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
-            echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
-          fi
-
-          # 修复 luci-app-pgyvpn 的 Makefile
-          if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
-            sed -i 's/+luci-lib-ipkg//g' package/OpenOray/luci-app-pgyvpn/Makefile
-            sed -i 's/+luci-lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
-            sed -i 's/+lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
-            sed -i 's/+luci-compat/+luci-base/g' package/OpenOray/luci-app-pgyvpn/Makefile
-            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
-            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
-            echo "✅ luci-app-pgyvpn Makefile 已修复"
-          fi
-
-          # === 处理花生壳 (phtunnel) ===
-          if [ -f "package/OpenOray/phtunnel/Makefile" ]; then
-            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/phtunnel/Makefile
-            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/phtunnel/Makefile
-            sed -i '/+libopenssl3/d' package/OpenOray/phtunnel/Makefile
-            echo "✅ phtunnel Makefile 已强制使用 OpenSSL 1.1"
-          fi
-
-          # 修复 luci-app-phtunnel 的 Makefile
-          if [ -f "package/OpenOray/luci-app-phtunnel/Makefile" ]; then
-            sed -i 's/+luci-lib-ipkg//g' package/OpenOray/luci-app-phtunnel/Makefile
-            sed -i 's/+luci-lua//g' package/OpenOray/luci-app-phtunnel/Makefile
-            sed -i 's/+lua//g' package/OpenOray/luci-app-phtunnel/Makefile
-            sed -i 's/+luci-compat/+luci-base/g' package/OpenOray/luci-app-phtunnel/Makefile
-            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/luci-app-phtunnel/Makefile
-            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/luci-app-phtunnel/Makefile
-            echo "✅ luci-app-phtunnel Makefile 已修复"
-          fi
 
           # 解压自定义插件到 package/ 独立目录（避免被 feeds 清理）
           unzip builder_repo/luci-app-accesscontrol.zip -d package/luci-app-accesscontrol
@@ -160,25 +112,6 @@ jobs:
           sed -i '/PKG_HASH/d' feeds/luci/contrib/package/csstidy/Makefile 2>/dev/null || true
           echo "✅ csstidy 修复完成"
 
-      # ========== 验证 OpenSSL 1.1 Makefile ==========
-      - name: Verify OpenSSL 1.1 Makefile
-        run: |
-          MAKEFILE_PATH="package/libs/openssl1.1/Makefile"
-          if [ -f "$MAKEFILE_PATH" ]; then
-            echo "=== OpenSSL 1.1 Makefile settings ==="
-            grep -E "PKG_NAME|PKG_VERSION|PKG_SOURCE[^_]|PKG_SOURCE_SUBDIR|OPENSSL_SRC_DIR" "$MAKEFILE_PATH" || true
-            echo ""
-            echo "=== Checking for nested directory handling ==="
-            if grep -q "openssl-\$(PKG_VERSION)/openssl-\$(PKG_VERSION)" "$MAKEFILE_PATH"; then
-              echo "✅ Makefile has nested directory support"
-            else
-              echo "⚠️ Makefile may not have nested directory support"
-            fi
-          else
-            echo "❌ Makefile not found at $MAKEFILE_PATH"
-            exit 1
-          fi
-
       - name: Setup configuration and custom files
         run: |
           df -hT
@@ -193,9 +126,6 @@ jobs:
           
           # 先运行 defconfig 生成基础配置
           make defconfig -j$(nproc)
-          
-          # 强制加入 libopenssl1.1 的配置（确保包被识别）
-          echo "CONFIG_PACKAGE_libopenssl1.1=y" >> .config
 
           # ==============================================
           # 已改回 软浮点 完美适配官方蒲公英 mipsel-sf
@@ -228,14 +158,6 @@ jobs:
           # 插件全部 =m 不占用固件空间
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
-          # 蒲公英使用本地版 pgyvpn-mt7621
-          echo "CONFIG_PACKAGE_pgyvpn=m" >> .config
-          echo "CONFIG_PACKAGE_pgyvpn-mt7621=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
-          echo "CONFIG_PACKAGE_luci-i18n-pgyvpn-zh-cn=m" >> .config
-          # 花生壳使用 OpenSSL 1.1
-          echo "CONFIG_PACKAGE_phtunnel=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-phtunnel=m" >> .config
 
           echo "CONFIG_PACKAGE_luci-compat=y" >> .config
           echo "CONFIG_PACKAGE_luci-base=y" >> .config
@@ -285,7 +207,7 @@ jobs:
           echo "# 辅助组件" >> .config
           echo "CONFIG_PACKAGE_ipset=m" >> .config
           echo "CONFIG_PACKAGE_libcap=m" >> .config
-          echo "CONFIG_PACKAGE_libstdcpp=y" >> .config   # 花生壳可能需要
+          echo "CONFIG_PACKAGE_libstdcpp=y" >> .config
 
           echo "" >> .config
           echo "# DNS 配置" >> .config
@@ -344,14 +266,6 @@ jobs:
       #       gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" 2>/dev/null || true
       #     done
 
-      # ========== 清理 OpenSSL 1.1 构建目录（保留下载的源码） ==========
-      - name: Clean OpenSSL 1.1 build dirs
-        run: |
-          echo "🧹 Cleaning OpenSSL 1.1 build directories..."
-          rm -rf build_dir/target-*/openssl*
-          rm -rf build_dir/host/openssl*
-          echo "✅ OpenSSL 1.1 build dirs cleaned"
-
       - name: Download packages
         run: |
           df -hT
@@ -384,14 +298,6 @@ jobs:
           echo "检查 Argon 主题相关包..."
           find bin/ -name "*.ipk" | grep -E "(argon)" || echo "⚠️ 未找到 Argon 主题包"
           echo ""
-          echo "检查 OpenSSL 1.1 库..."
-          find bin/ -name "*.ipk" | grep -E "(libopenssl1.1)" || echo "⚠️ 未找到 libopenssl1.1"
-          echo ""
-          echo "检查 蒲公英 VPN 包..."
-          find bin/ -name "pgyvpn-mt7621*"
-          echo "检查 蒲公英 Web 包..."
-          find bin/ -name "luci-app-pgyvpn*"
-          find bin/ -name "luci-i18n-pgyvpn*"
           echo "=== 验证完成 ==="
 
       - name: Upload artifacts
@@ -439,15 +345,12 @@ jobs:
             - **Target:** [JDCloud RE-CP-02 鲁班]
             - **浮点模式:** 软浮点 (Soft Float) ✅
             - **固件大小:** 小于 16MB
-            - **OpenSSL 配置:** 蒲公英 & 花生壳使用 1.1，其他使用 3.0
+            - **OpenSSL 配置:** 全量跟随系统默认OpenSSL3
             - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
 
             ### 📦 插件说明（均为离线IPK，不占固件空间）
             - Passwall2 全套 (OpenSSL 3.0)
             - OpenClash 全套 (OpenSSL 3.0)
-            - 蒲公英 VPN pgyvpn-mt7621 (OpenSSL 1.1本地musl版 ✅)
-            - 蒲公英 Web 面板 luci-app-pgyvpn ✅
-            - 花生壳 phtunnel (OpenSSL 1.1) ✅
             - Argon 主题 + 配置
 
             ### 📋 Notes
