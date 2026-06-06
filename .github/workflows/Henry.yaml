@@ -99,6 +99,13 @@ jobs:
 
           # 更新 feeds
           ./scripts/feeds update -a
+
+          # ==========【关键】 feeds update后立刻修改rpcd-mod-luci，再install ==========
+          echo "Fix rpcd-mod-luci CMake min version..."
+          find feeds/luci/libs/rpcd-mod-luci -name CMakeLists.txt -exec sed -i 's/cmake_minimum_required(VERSION *3\.31[^)]*)/cmake_minimum_required(VERSION 3.18)/' {} \;
+          # 校验是否修改成功
+          cat feeds/luci/libs/rpcd-mod-luci/CMakeLists.txt|head -3
+
           ./scripts/feeds install -a -p luci
           ./scripts/feeds install -a -p packages
 
@@ -111,12 +118,6 @@ jobs:
           rm -rf dl/csstidy*
           sed -i '/PKG_HASH/d' feeds/luci/contrib/package/csstidy/Makefile 2>/dev/null || true
           echo "✅ csstidy 修复完成"
-
-      # ===新增：修改rpcd-mod-luci CMake最低版本===
-      - name: Fix rpcd-mod-luci cmake min version
-        run: |
-          # 修改rpcd-mod-luci CMake最低版本要求，规避cmake3.31强制依赖
-          sed -i 's/cmake_minimum_required(VERSION 3\.31)/cmake_minimum_required(VERSION 3.18)/' feeds/luci/libs/rpcd-mod-luci/CMakeLists.txt || true
 
       - name: Setup configuration and custom files
         run: |
