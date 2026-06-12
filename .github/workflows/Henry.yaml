@@ -93,6 +93,9 @@ jobs:
           mv builder_repo/${{ env.CONFIG_FILE }} .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
+          # 修复ssh冲突：禁用原版openssh-server，只启用PAM版本
+          sed -i 's/^CONFIG_PACKAGE_openssh-server=y/# CONFIG_PACKAGE_openssh-server is not set/' .config
+          echo "CONFIG_PACKAGE_openssh-server-pam=y" >> .config
           make defconfig -j$(nproc)
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
