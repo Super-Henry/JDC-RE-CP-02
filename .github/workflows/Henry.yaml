@@ -33,7 +33,9 @@ jobs:
         run: |
           latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/commits/${{ env.REMOTE_BRANCH }}" --jq .sha)
           release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body 2>/dev/null || echo "")
+
           new_commits=$([[ "$release_body" == *"$latest_sha"* ]] && echo "false" || echo "true")
+
           echo "new_commits=$new_commits" >> "$GITHUB_OUTPUT"
           echo "latest_commit_sha=$latest_sha" >> "$GITHUB_OUTPUT"
 
@@ -51,7 +53,7 @@ jobs:
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
           ref: ${{ env.REMOTE_BRANCH }}
-          fetch-depth: 0
+          fetch-tags: true
 
       - name: Checkout current repository
         uses: actions/checkout@v4
@@ -69,17 +71,6 @@ jobs:
             done
           fi
 
-      # ==============================
-      # 🔥 已加入：使用你自己的 feeds.conf.default
-      # ==============================
-      - name: Load custom feeds config
-        run: |
-          df -h
-          rm -rf feeds package/feeds tmp
-          make distclean
-          [ -f builder_repo/feeds.conf.default ] && cp -f builder_repo/feeds.conf.default feeds.conf.default
-          echo "✅ 已加载自定义 feeds 配置，锁定版本成功"
-
       - name: Update and install feeds
         run: |
           df -h
@@ -90,115 +81,20 @@ jobs:
           git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
           git clone https://github.com/jerrykuku/luci-app-argon-config.git package/feeds/luci/luci-app-argon-config
           git clone https://github.com/Super-Henry/OpenClash.git package/luci-app-openclash
-
-          # 🔥 加入蒲公英 VPN (OpenOray) - 包含蒲公英、花生壳、向日葵
-          git clone https://github.com/Super-Henry/OpenOray.git package/OpenOray
-          
-          # 检查克隆是否成功
-          if [ -d "package/OpenOray" ]; then
-            echo "✅ OpenOray 仓库克隆成功"
-          else
-            echo "❌ OpenOray 仓库克隆失败"
-            exit 1
-          fi
-          
-          # === 处理蒲公英 (pgyvpn) ===
-          if [ -f "package/OpenOray/pgyvpn/Makefile" ]; then
-            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
-            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/pgyvpn/Makefile
-            sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
-            echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
-          fi
-
-          # 修复 luci-app-pgyvpn 的 Makefile
-          if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
-            sed -i 's/+luci-lib-ipkg//g' package/OpenOray/luci-app-pgyvpn/Makefile
-            sed -i 's/+luci-lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
-            sed -i 's/+lua//g' package/OpenOray/luci-app-pgyvpn/Makefile
-            sed -i 's/+luci-compat/+luci-base/g' package/OpenOray/luci-app-pgyvpn/Makefile
-            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
-            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/luci-app-pgyvpn/Makefile
-            echo "✅ luci-app-pgyvpn Makefile 已修复"
-          fi
-
-          # === 处理花生壳 (phtunnel) ===
-          if [ -f "package/OpenOray/phtunnel/Makefile" ]; then
-            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/phtunnel/Makefile
-            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/phtunnel/Makefile
-            sed -i '/+libopenssl3/d' package/OpenOray/phtunnel/Makefile
-            echo "✅ phtunnel Makefile 已强制使用 OpenSSL 1.1"
-          fi
-
-          # 修复 luci-app-phtunnel 的 Makefile
-          if [ -f "package/OpenOray/luci-app-phtunnel/Makefile" ]; then
-            sed -i 's/+luci-lib-ipkg//g' package/OpenOray/luci-app-phtunnel/Makefile
-            sed -i 's/+luci-lua//g' package/OpenOray/luci-app-phtunnel/Makefile
-            sed -i 's/+lua//g' package/OpenOray/luci-app-phtunnel/Makefile
-            sed -i 's/+luci-compat/+luci-base/g' package/OpenOray/luci-app-phtunnel/Makefile
-            sed -i 's/+libopenssl-1.1/+libopenssl1.1/g' package/OpenOray/luci-app-phtunnel/Makefile
-            sed -i 's/+libopenssl\b/+libopenssl1.1/g' package/OpenOray/luci-app-phtunnel/Makefile
-            echo "✅ luci-app-phtunnel Makefile 已修复"
-          fi
-
-          # 解压自定义插件到 package/ 独立目录（避免被 feeds 清理）
-          unzip builder_repo/luci-app-accesscontrol.zip -d package/luci-app-accesscontrol
+          #git clone https://github.com/dgyangxf/luci-app-vlmcsd.git package/feeds/luci/luci-app-vlmcsd
+          #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
+          #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
+          unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
           # fix the passwall2 Makefile
           sed -i -e '/^endchoice/i\\n\tconfig PACKAGE_$(PKG_NAME)_Basic_Core_None\n\t\tbool "None"' package/feeds/luci/luci-app-passwall2/luci-app-passwall2/Makefile
-
-          # 更新 feeds
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a -p luci
-          ./scripts/feeds install -a -p packages
-
-      # ==============================
-      # 🔥 修复 csstidy 哈希错误（已加入）
-      # ==============================
-      - name: Fix csstidy hash mismatch
-        run: |
-          echo "🛠️ 修复 csstidy 哈希校验错误..."
-          rm -rf dl/csstidy*
-          sed -i '/PKG_HASH/d' feeds/luci/contrib/package/csstidy/Makefile 2>/dev/null || true
-          echo "✅ csstidy 修复完成"
-
-      # ========== 验证 OpenSSL 1.1 Makefile ==========
-      - name: Verify OpenSSL 1.1 Makefile
-        run: |
-          MAKEFILE_PATH="package/libs/openssl1.1/Makefile"
-          if [ -f "$MAKEFILE_PATH" ]; then
-            echo "=== OpenSSL 1.1 Makefile settings ==="
-            grep -E "PKG_NAME|PKG_VERSION|PKG_SOURCE[^_]|PKG_SOURCE_SUBDIR|OPENSSL_SRC_DIR" "$MAKEFILE_PATH" || true
-            echo ""
-            echo "=== Checking for nested directory handling ==="
-            if grep -q "openssl-\$(PKG_VERSION)/openssl-\$(PKG_VERSION)" "$MAKEFILE_PATH"; then
-              echo "✅ Makefile has nested directory support"
-            else
-              echo "⚠️ Makefile may not have nested directory support"
-            fi
-          else
-            echo "❌ Makefile not found at $MAKEFILE_PATH"
-            exit 1
-          fi
+          ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
 
       - name: Setup configuration and custom files
         run: |
-          df -hT
-          
-          # 🔥 修复内核版本不匹配：强制清理旧缓存（关键修复）
-          rm -rf tmp build_dir staging_dir
-          
-          mv builder_repo/${{ env.CONFIG_FILE }} .config
-          
-          # 关键：强制扫描所有本地包
-          make package/symlinks
-          
-          # 先运行 defconfig 生成基础配置
-          make defconfig -j$(nproc)
-          
-          # 强制加入 libopenssl1.1 的配置（确保包被识别）
-          echo "CONFIG_PACKAGE_libopenssl1.1=y" >> .config
-
+          df -h
+          mv builder_repo/${{ env.CONFIG_FILE }} .config        
           # ==============================================
-          # 已改回 软浮点 完美适配官方蒲公英 mipsel-sf
+          # 已改回 软浮点 完美适配官方架构
           # ==============================================
           echo "CONFIG_SOFT_FLOAT=y" >> .config
           echo "CONFIG_HARD_FLOAT=n" >> .config
@@ -216,10 +112,6 @@ jobs:
           echo "CONFIG_PACKAGE_blockd=y" >> .config
           echo "CONFIG_PACKAGE_lsblk=y" >> .config
           echo "CONFIG_PACKAGE_dmidecode=y" >> .config
-          
-          # 运行 oldconfig 接受新选项
-          make oldconfig
-          
           # 然后添加其他插件配置（保留原有全部 echo 命令）
           echo "CONFIG_USE_APK=y" >> .config
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
@@ -228,14 +120,6 @@ jobs:
           # 插件全部 =m 不占用固件空间
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
-          # 蒲公英使用本地版 pgyvpn-mt7621
-          echo "CONFIG_PACKAGE_pgyvpn=m" >> .config
-          echo "CONFIG_PACKAGE_pgyvpn-mt7621=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-pgyvpn=m" >> .config
-          echo "CONFIG_PACKAGE_luci-i18n-pgyvpn-zh-cn=m" >> .config
-          # 花生壳使用 OpenSSL 1.1
-          echo "CONFIG_PACKAGE_phtunnel=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-phtunnel=m" >> .config
 
           echo "CONFIG_PACKAGE_luci-compat=y" >> .config
           echo "CONFIG_PACKAGE_luci-base=y" >> .config
@@ -285,7 +169,7 @@ jobs:
           echo "# 辅助组件" >> .config
           echo "CONFIG_PACKAGE_ipset=m" >> .config
           echo "CONFIG_PACKAGE_libcap=m" >> .config
-          echo "CONFIG_PACKAGE_libstdcpp=y" >> .config   # 花生壳可能需要
+          echo "CONFIG_PACKAGE_libstdcpp=y" >> .config
 
           echo "" >> .config
           echo "# DNS 配置" >> .config
@@ -298,11 +182,10 @@ jobs:
           echo "CONFIG_PACKAGE_luci-mod-system-mountpoints=y" >> .config
           echo "CONFIG_PACKAGE_block-mount=y" >> .config
 
-          # 最后再运行一次 defconfig 确保依赖正确
           make defconfig -j$(nproc)
           
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
-          [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && cp -r builder_repo/${{ env.CUSTOM_FILES_PATH }}. ${{ env.CUSTOM_FILES_PATH }} || true
+          [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
 
       # ========== ✅ 自动注入真实编译时间（你要的核心功能） ==========
       - name: Inject real build timestamp
@@ -315,59 +198,43 @@ jobs:
           echo "编译源码提交: ${{ needs.check_commits.outputs.latest_commit_sha }}" >> files/etc/build_time
 
       - name: Use /mnt for more disk space
-        if: always()
         run: |
           sudo mkdir -p /mnt/upper /mnt/work && sudo chmod a+w /mnt/upper
-          sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd) && df -hT
+          sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd)
+          df -h
 
-      # 👇👇👇 这里已注释，禁止恢复旧缓存（防止内核错乱）
-      # - name: Restore cache from previous build
-      #   uses: actions/cache@v4
-      #   if: always()
-      #   with:
-      #     key: openwrt-build-${{ needs.check_commits.outputs.latest_commit_sha }}
-      #     restore-keys: |
-      #       openwrt-build
-      #     path: |
-      #       build_dir
-      #       dl
-      #       staging_dir
-      #       tmp
+      - name: cache
+        uses: actions/cache@v4
+        if: always()
+        with:
+          key: openwrt-build-${{ needs.check_commits.outputs.latest_commit_sha }}
+          restore-keys: |
+            openwrt-build
+          path: |
+            build_dir
+            dl
+            staging_dir
+            tmp
 
-      # 👇👇👇 这里已注释，不清理云端缓存（防止内核错乱）
-      # - name: Clean up old caches
-      #   env:
-      #     GH_TOKEN: ${{ github.token }}
-      #   run: |
-      #     gh api repos/${{ github.repository }}/actions/caches --paginate --jq '.actions_caches[0:] | .[] |.key' | while read key; do
-      #       echo "Removing old cache $key ..."
-      #       gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" 2>/dev/null || true
-      #     done
-
-      # ========== 清理 OpenSSL 1.1 构建目录（保留下载的源码） ==========
-      - name: Clean OpenSSL 1.1 build dirs
+      - name: Clean up old caches
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "🧹 Cleaning OpenSSL 1.1 build directories..."
-          rm -rf build_dir/target-*/openssl*
-          rm -rf build_dir/host/openssl*
-          echo "✅ OpenSSL 1.1 build dirs cleaned"
+          gh api repos/${{ github.repository }}/actions/caches --paginate --jq '.actions_caches[0:] | .[] |.key' | while read key; do
+            echo "Removing old cache $key ..."
+            gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" 2>/dev/null || true
+          done
 
-      - name: Download packages
+      - name: Download source
         run: |
-          df -hT
+          df -h
           ./scripts/feeds update -a
-          make download -j$(nproc) V=s
-          
+          make download -j$(nproc)
+
       - name: Build firmware
-        env: 
-          CMAKE_POLICY_VERSION_MINIMUM: 3.5
         run: |
-          df -hT
-          # 🔥 强制清理所有缓存，重新编译最新内核
-          make clean
-          make dirclean
-          rm -rf tmp build_dir staging_dir
-          
+          df -h
           make check -j$(nproc) FIXUP=1 V=s
           make -j$(nproc) || make -j1 V=s  # Retry single-threaded on failure
           tar cvzf bin/targets/ramips/mt7621/snapshots.tar.gz -C bin packages/mipsel_24kc targets/ramips/mt7621/packages
@@ -383,15 +250,6 @@ jobs:
           echo ""
           echo "检查 Argon 主题相关包..."
           find bin/ -name "*.ipk" | grep -E "(argon)" || echo "⚠️ 未找到 Argon 主题包"
-          echo ""
-          echo "检查 OpenSSL 1.1 库..."
-          find bin/ -name "*.ipk" | grep -E "(libopenssl1.1)" || echo "⚠️ 未找到 libopenssl1.1"
-          echo ""
-          echo "检查 蒲公英 VPN 包..."
-          find bin/ -name "pgyvpn-mt7621*"
-          echo "检查 蒲公英 Web 包..."
-          find bin/ -name "luci-app-pgyvpn*"
-          find bin/ -name "luci-i18n-pgyvpn*"
           echo "=== 验证完成 ==="
 
       - name: Upload artifacts
@@ -439,24 +297,21 @@ jobs:
             - **Target:** [JDCloud RE-CP-02 鲁班]
             - **浮点模式:** 软浮点 (Soft Float) ✅
             - **固件大小:** 小于 16MB
-            - **OpenSSL 配置:** 蒲公英 & 花生壳使用 1.1，其他使用 3.0
+            - **OpenSSL 配置:** 全局 OpenSSL 3.0
             - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
 
             ### 📦 插件说明（均为离线IPK，不占固件空间）
             - Passwall2 全套 (OpenSSL 3.0)
             - OpenClash 全套 (OpenSSL 3.0)
-            - 蒲公英 VPN pgyvpn-mt7621 (OpenSSL 1.1本地musl版 ✅)
-            - 蒲公英 Web 面板 luci-app-pgyvpn ✅
-            - 花生壳 phtunnel (OpenSSL 1.1) ✅
             - Argon 主题 + 配置
 
             ### 📋 Notes
             - Automated build triggered by ${{ github.event_name }}
-            - 插件均为离线 IPK，刷机后需手动安装
+            - 插件均为离线 APK，刷机后需手动安装
             - 固件本身小于 16MB
             ---
             _Generated by GitHub Actions 🤖_
-          # 👇👇👇 已修复：强制绑定 development-version 分支
+	    # 👇👇👇 已修复：强制绑定 development-version 分支
           target_commitish: development-version
 
       - name: Clean up old releases
