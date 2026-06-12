@@ -74,7 +74,7 @@ jobs:
           df -h
           #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
           # 注释passwall2
-          #git clone https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/feeds/luci/luci-app-passwall2
+          #git clone https://github.com/Super-Henry/Openwrt-Passwall2.git package/feeds/luci/luci-app-passwall2
           #git clone -b openwrt-24.10 https://github.com/Super-Henry/Openwrt-Passwall-Packages.git package/utils/passwall2
           git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
           git clone https://github.com/jerrykuku/luci-app-argon-config.git package/feeds/luci/luci-app-argon-config
