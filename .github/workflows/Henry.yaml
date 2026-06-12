@@ -53,6 +53,7 @@ jobs:
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
           ref: ${{ env.REMOTE_BRANCH }}
+          fetch-tags: true
 
       - name: Checkout current repository
         uses: actions/checkout@v4
@@ -121,6 +122,16 @@ jobs:
           make defconfig -j$(nproc)
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
+
+      # ========== ✅ 自动注入真实编译时间（你要的核心功能） ==========
+      - name: Inject real build timestamp
+        run: |
+          BUILD_DATE=$(date +%s)
+          BUILD_DATE_FRIENDLY=$(date +"%Y-%m-%d %H:%M:%S")
+          echo "BUILD_DATE=\"$BUILD_DATE\"" >> package/base-files/files/etc/os-release
+          mkdir -p files/etc
+          echo "固件编译时间: $BUILD_DATE_FRIENDLY" > files/etc/build_time
+          echo "编译源码提交: ${{ needs.check_commits.outputs.latest_commit_sha }}" >> files/etc/build_time
 
       - name: Use /mnt for more disk space
         run: |
