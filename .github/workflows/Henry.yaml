@@ -82,22 +82,27 @@ jobs:
           git clone https://github.com/jerrykuku/luci-app-argon-config.git package/feeds/luci/luci-app-argon-config
           git clone https://github.com/Super-Henry/OpenClash.git package/luci-app-openclash
 
-          # 双源：store界面 + istoreos后台全套
-          echo 'src-git store https://github.com/linkease/istore.git;main' >> feeds.conf.default
-          echo 'src-git istoreos https://github.com/istoreos/istoreos;istoreos-24.10' >> feeds.conf.default
+          # 清除旧的store/istoreos feed配置，改用本地精准拷贝源码（解决istore缺失）
+          sed -i '/src-git store/d' feeds.conf.default
+          sed -i '/src-git istoreos/d' feeds.conf.default
 
-          #git clone https://github.com/dgyangxf/luci-app-vlmcsd.git package/feeds/luci/luci-app-vlmcsd
-          #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
-          #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
+          # 1. 商店前端UI面板
+          git clone https://github.com/linkease/istore.git package/feeds/luci/luci-app-store
+          # 2. 浅克隆istoreos，只复制3套必须后台源码，无多余魔改包干扰
+          git clone --depth=1 https://github.com/istoreos/istoreos.git temp_iso
+          cp -r temp_iso/package/utils/istore package/utils/
+          cp -r temp_iso/package/utils/taskd package/utils/
+          cp -r temp_iso/package/feeds/luci/luci-lib-taskd package/feeds/luci/
+          rm -rf temp_iso
+
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
           # fix the passwall2 Makefile
           #sed -i -e '/^endchoice/i\\n\tconfig PACKAGE_$(PKG_NAME)_Basic_Core_None\n\t\tbool "None"' package/feeds/luci/luci-app-passwall2/luci-app-passwall2/Makefile
+          
+          # 全局刷新所有本地package
           ./scripts/feeds update -a
-          ./scripts/feeds install -a -p luci
-          ./scripts/feeds install -a -p packages
-          ./scripts/feeds install -a -p store
-          ./scripts/feeds install -a -p istoreos
-          # 强制锁定四个商店组件索引
+          ./scripts/feeds install -a
+          # 强制注册四个商店核心包
           ./scripts/feeds install luci-app-store
           ./scripts/feeds install taskd
           ./scripts/feeds install luci-lib-taskd
