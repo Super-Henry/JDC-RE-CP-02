@@ -200,7 +200,7 @@ index 45bb2ab101..0b14dd689c 100644
    $(Device/dsa-migration)
    IMAGE_SIZE := 16064k
 diff --git a/target/linux/ramips/mt7621/base-files/etc/board.d/02_network b/target/linux/ramips/mt7621/base-files/etc/board.d/02_network
-index fedb31571a..eaec1a7623 100644
+index 18e979d..82aa27f
 --- a/target/linux/ramips/mt7621/base-files/etc/board.d/02_network
 +++ b/target/linux/ramips/mt7621/base-files/etc/board.d/02_network
 @@ -32,6 +32,7 @@ ramips_setup_interfaces()
@@ -209,6 +209,5 @@ index fedb31571a..eaec1a7623 100644
  	xiaomi,redmi-router-ac2100|\
 +	jdcloud,luban|\
  	z-router,zr-2660|\
- 	z-router,zr-2662|\
  	zyxel,wsm20)
  		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "wan"
