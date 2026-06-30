@@ -11,12 +11,12 @@ on:
   workflow_dispatch:
 
 env:
-  REMOTE_REPOSITORY: Super-Henry/openwrt
-  REMOTE_BRANCH: development-version
+  REMOTE_REPOSITORY: Super-Henry/Fanchmwrt
+  REMOTE_BRANCH: henry-25.12.2
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
-  RELEASE_PREFIX: development-version
-  ENV: development-version
+  RELEASE_PREFIX: fanchmwrt-henry-25.12.2
+  ENV: fanchmwrt-henry-25.12.2
 
 jobs:
   check_commits:
