@@ -76,8 +76,9 @@ jobs:
           df -h
 
           #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
-          git clone https://github.com/Super-Henry/Openwrt-Passwall2.git package/feeds/luci/luci-app-passwall2
-          git clone https://github.com/Super-Henry/Openwrt-Passwall-Packages.git package/utils/passwall2
+          # 屏蔽Passwall2源码拉取，缩减编译体积
+          #git clone https://github.com/Super-Henry/Openwrt-Passwall2.git package/feeds/luci/luci-app-passwall2
+          #git clone https://github.com/Super-Henry/Openwrt-Passwall-Packages.git package/utils/passwall2
           git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
           git clone https://github.com/jerrykuku/luci-app-argon-config.git package/feeds/luci/luci-app-argon-config
           git clone https://github.com/Super-Henry/OpenClash.git package/luci-app-openclash
@@ -85,8 +86,6 @@ jobs:
           #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
           #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
-          # fix the passwall2 Makefile
-          sed -i -e '/^endchoice/i\\n\tconfig PACKAGE_$(PKG_NAME)_Basic_Core_None\n\t\tbool "None"' package/feeds/luci/luci-app-passwall2/luci-app-passwall2/Makefile
           ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
 
       - name: Setup configuration and custom files
@@ -119,7 +118,6 @@ jobs:
 
           # 插件全部 =m 不占用固件空间
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
 
           echo "CONFIG_PACKAGE_luci-compat=y" >> .config
           echo "CONFIG_PACKAGE_luci-base=y" >> .config
@@ -133,22 +131,6 @@ jobs:
           echo "CONFIG_PACKAGE_jsonfilter=m" >> .config
           echo "CONFIG_PACKAGE_ca-certificates=m" >> .config
 
-          echo "" >> .config
-          echo "# PassWall2 依赖（使用 OpenSSL 3.0）" >> .config
-          echo "CONFIG_PACKAGE_passwall2=m" >> .config
-          echo "CONFIG_PACKAGE_xray-core=m" >> .config
-          echo "CONFIG_PACKAGE_xray-plugin=m" >> .config
-          echo "CONFIG_PACKAGE_sing-box=m" >> .config
-          echo "CONFIG_PACKAGE_hysteria=m" >> .config
-          
-          # 🔥 🔥 🔥 这里关闭 naiveproxy 解决 404 错误 🔥 🔥 🔥
-          echo "CONFIG_PACKAGE_naiveproxy=n" >> .config
-          echo "CONFIG_PACKAGE_passwall2_naiveproxy=n" >> .config
-          
-          echo "CONFIG_PACKAGE_tuic-client=m" >> .config
-          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-redir=m" >> .config
-          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-tunnel=m" >> .config
-          echo "CONFIG_PACKAGE_shadowsocksr-libev-ssr-redir=m" >> .config
 
           echo "" >> .config
           echo "# 必须集成内核模块" >> .config
@@ -245,9 +227,6 @@ jobs:
           echo "检查 OpenClash 相关包..."
           find bin/ -name "*.ipk" | grep -E "(openclash)" || echo "⚠️ 未找到 OpenClash 包"
           echo ""
-          echo "检查 PassWall 相关包..."
-          find bin/ -name "*.ipk" | grep -E "(passwall)" || echo "⚠️ 未找到 PassWall 包"
-          echo ""
           echo "检查 Argon 主题相关包..."
           find bin/ -name "*.ipk" | grep -E "(argon)" || echo "⚠️ 未找到 Argon 主题包"
           echo "=== 验证完成 ==="
@@ -301,9 +280,9 @@ jobs:
             - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
 
             ### 📦 插件说明（均为离线IPK，不占固件空间）
-            - Passwall2 全套 (OpenSSL 3.0)
             - OpenClash 全套 (OpenSSL 3.0)
             - Argon 主题 + 配置
+            - Passwall2 已移除（减小固件体积适配16M闪存）
 
             ### 📋 Notes
             - Automated build triggered by ${{ github.event_name }}
