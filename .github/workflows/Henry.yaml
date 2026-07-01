@@ -12,7 +12,7 @@ on:
 
 env:
   REMOTE_REPOSITORY: Super-Henry/Fanchmwrt
-  REMOTE_BRANCH: fanchmwrt-henry-25.12.2
+  REMOTE_BRANCH: henry-25.12.2
   CONFIG_FILE: jdcloud_luban.config
   CUSTOM_FILES_PATH: files/
   RELEASE_PREFIX: fanchmwrt-henry-25.12.2
