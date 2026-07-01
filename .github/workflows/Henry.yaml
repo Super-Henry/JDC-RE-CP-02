@@ -53,7 +53,6 @@ jobs:
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
           ref: ${{ env.REMOTE_BRANCH }}
-          fetch-tags: true
 
       - name: Checkout current repository
         uses: actions/checkout@v4
@@ -76,9 +75,8 @@ jobs:
           df -h
 
           #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
-          # 屏蔽Passwall2源码拉取，缩减编译体积
-          #git clone https://github.com/Super-Henry/Openwrt-Passwall2.git package/feeds/luci/luci-app-passwall2
-          #git clone https://github.com/Super-Henry/Openwrt-Passwall-Packages.git package/utils/passwall2
+          git clone https://github.com/Super-Henry/Openwrt-Passwall2.git package/feeds/luci/luci-app-passwall2
+          git clone https://github.com/Super-Henry/Openwrt-Passwall-Packages.git package/utils/passwall2
           git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
           git clone https://github.com/jerrykuku/luci-app-argon-config.git package/feeds/luci/luci-app-argon-config
           git clone https://github.com/Super-Henry/OpenClash.git package/luci-app-openclash
@@ -86,6 +84,8 @@ jobs:
           #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
           #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
+          # fix the passwall2 Makefile
+          sed -i -e '/^endchoice/i\\n\tconfig PACKAGE_$(PKG_NAME)_Basic_Core_None\n\t\tbool "None"' package/feeds/luci/luci-app-passwall2/luci-app-passwall2/Makefile
           ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
 
       - name: Setup configuration and custom files
@@ -112,12 +112,13 @@ jobs:
           echo "CONFIG_PACKAGE_lsblk=y" >> .config
           echo "CONFIG_PACKAGE_dmidecode=y" >> .config
           # 然后添加其他插件配置（保留原有全部 echo 命令）
-          echo "CONFIG_USE_APK=y" >> .config
+          echo "CONFIG_USE_APK=n" >> .config
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
 
           # 插件全部 =m 不占用固件空间
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
 
           echo "CONFIG_PACKAGE_luci-compat=y" >> .config
           echo "CONFIG_PACKAGE_luci-base=y" >> .config
@@ -131,6 +132,22 @@ jobs:
           echo "CONFIG_PACKAGE_jsonfilter=m" >> .config
           echo "CONFIG_PACKAGE_ca-certificates=m" >> .config
 
+          echo "" >> .config
+          echo "# PassWall2 依赖（使用 OpenSSL 3.0）" >> .config
+          echo "CONFIG_PACKAGE_passwall2=m" >> .config
+          echo "CONFIG_PACKAGE_xray-core=m" >> .config
+          echo "CONFIG_PACKAGE_xray-plugin=m" >> .config
+          echo "CONFIG_PACKAGE_sing-box=m" >> .config
+          echo "CONFIG_PACKAGE_hysteria=m" >> .config
+          
+          # 🔥 🔥 🔥 这里关闭 naiveproxy 解决 404 错误 🔥 🔥 🔥
+          echo "CONFIG_PACKAGE_naiveproxy=n" >> .config
+          echo "CONFIG_PACKAGE_passwall2_naiveproxy=n" >> .config
+          
+          echo "CONFIG_PACKAGE_tuic-client=m" >> .config
+          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-redir=m" >> .config
+          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-tunnel=m" >> .config
+          echo "CONFIG_PACKAGE_shadowsocksr-libev-ssr-redir=m" >> .config
 
           echo "" >> .config
           echo "# 必须集成内核模块" >> .config
@@ -163,6 +180,53 @@ jobs:
           echo "CONFIG_PACKAGE_luci-mod-system=y" >> .config
           echo "CONFIG_PACKAGE_luci-mod-system-mountpoints=y" >> .config
           echo "CONFIG_PACKAGE_block-mount=y" >> .config
+
+          # ====================== 固件瘦身新增配置 ======================
+          # 禁用无用USB/存储内核驱动
+          echo "CONFIG_PACKAGE_kmod-sound-core=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-usb-audio=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-usb-serial=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-usb-net=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-fs-exfat=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-fs-vfat=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-fs-ntfs=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-usb-storage=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-hwmon=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-w1=n" >> .config
+
+          # 关闭多余LUCI页面
+          echo "CONFIG_PACKAGE_luci-mod-diag=n" >> .config
+          echo "CONFIG_PACKAGE_luci-mod-reboot=n" >> .config
+          echo "CONFIG_PACKAGE_luci-mod-stat=n" >> .config
+          echo "CONFIG_PACKAGE_luci-mod-upnp=n" >> .config
+          echo "CONFIG_PACKAGE_luci-mod-wireless=n" >> .config
+          echo "CONFIG_PACKAGE_luci-app-firewall=n" >> .config
+          echo "CONFIG_PACKAGE_luci-app-statistics=n" >> .config
+          echo "CONFIG_PACKAGE_luci-app-ddns=n" >> .config
+          echo "CONFIG_PACKAGE_luci-app-samba=n" >> .config
+          echo "CONFIG_PACKAGE_luci-app-nlbwmon=n" >> .config
+
+          # 卸载多余工具
+          echo "CONFIG_PACKAGE_iperf3=n" >> .config
+          echo "CONFIG_PACKAGE_tcpdump=n" >> .config
+          echo "CONFIG_PACKAGE_htop=n" >> .config
+          echo "CONFIG_PACKAGE_nano=n" >> .config
+          echo "CONFIG_PACKAGE_vim-full=n" >> .config
+          echo "CONFIG_PACKAGE_openssh-sftp-server=n" >> .config
+          echo "CONFIG_PACKAGE_dropbearconvert=n" >> .config
+          echo "CONFIG_PACKAGE_miniupnpd=n" >> .config
+
+          # 开启SquashFS极致压缩
+          echo "CONFIG_TARGET_SQUASHFS_BLOCKSIZE=1024" >> .config
+          echo "CONFIG_TARGET_SQUASHFS_COMPRESSION_XZ=y" >> .config
+          echo "CONFIG_TARGET_SQUASHFS_XZ_DICT_SIZE=512K" >> .config
+          echo "CONFIG_SQUASHFS_4K_DEVBLK=y" >> .config
+
+          # 多余库裁剪
+          echo "CONFIG_PACKAGE_libgcrypt=n" >> .config
+          echo "CONFIG_PACKAGE_libgnutls=n" >> .config
+          echo "CONFIG_PACKAGE_libxml2=n" >> .config
+          # ==============================================================
 
           make defconfig -j$(nproc)
           
@@ -227,6 +291,9 @@ jobs:
           echo "检查 OpenClash 相关包..."
           find bin/ -name "*.ipk" | grep -E "(openclash)" || echo "⚠️ 未找到 OpenClash 包"
           echo ""
+          echo "检查 PassWall 相关包..."
+          find bin/ -name "*.ipk" | grep -E "(passwall)" || echo "⚠️ 未找到 PassWall 包"
+          echo ""
           echo "检查 Argon 主题相关包..."
           find bin/ -name "*.ipk" | grep -E "(argon)" || echo "⚠️ 未找到 Argon 主题包"
           echo "=== 验证完成 ==="
@@ -280,9 +347,9 @@ jobs:
             - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
 
             ### 📦 插件说明（均为离线IPK，不占固件空间）
+            - Passwall2 全套 (OpenSSL 3.0)
             - OpenClash 全套 (OpenSSL 3.0)
             - Argon 主题 + 配置
-            - Passwall2 已移除（减小固件体积适配16M闪存）
 
             ### 📋 Notes
             - Automated build triggered by ${{ github.event_name }}
