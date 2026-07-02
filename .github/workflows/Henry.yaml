@@ -76,112 +76,25 @@ jobs:
           df -h
 
           #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
+          ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
           git clone https://github.com/Super-Henry/Openwrt-Passwall2.git package/feeds/luci/luci-app-passwall2
           git clone https://github.com/Super-Henry/Openwrt-Passwall-Packages.git package/utils/passwall2
           git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
           git clone https://github.com/jerrykuku/luci-app-argon-config.git package/feeds/luci/luci-app-argon-config
-          git clone https://github.com/Super-Henry/OpenClash.git package/luci-app-openclash
+          #git clone https://github.com/Super-Henry/OpenClash.git package/luci-app-openclash
           #git clone https://github.com/dgyangxf/luci-app-vlmcsd.git package/feeds/luci/luci-app-vlmcsd
           #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
           #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
           # fix the passwall2 Makefile
           sed -i -e '/^endchoice/i\\n\tconfig PACKAGE_$(PKG_NAME)_Basic_Core_None\n\t\tbool "None"' package/feeds/luci/luci-app-passwall2/luci-app-passwall2/Makefile
-          ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
 
       - name: Setup configuration and custom files
         run: |
           df -h
-          mv builder_repo/${{ env.CONFIG_FILE }} .config        
-          # ==============================================
-          # 已改回 软浮点 完美适配官方架构
-          # ==============================================
-          echo "CONFIG_SOFT_FLOAT=y" >> .config
-          echo "CONFIG_HARD_FLOAT=n" >> .config
-          echo "CONFIG_MIPS_FPU_EMULATOR=n" >> .config
-
-          # ==============================================
-          # 全局修复 pre-install 脚本报错 / ubus/service缺失
-          # ==============================================
-          echo "CONFIG_PACKAGE_procd=y" >> .config
-          echo "CONFIG_PACKAGE_ubus=y" >> .config
-          echo "CONFIG_PACKAGE_ubusd=y" >> .config
-          echo "CONFIG_PACKAGE_service=y" >> .config
-          echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
-          echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
-          echo "CONFIG_PACKAGE_blockd=y" >> .config
-          echo "CONFIG_PACKAGE_lsblk=y" >> .config
-          echo "CONFIG_PACKAGE_dmidecode=y" >> .config
-          # 然后添加其他插件配置（保留原有全部 echo 命令）
-          echo "CONFIG_USE_APK=y" >> .config
-          echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
+          mv builder_repo/${{ env.CONFIG_FILE }} .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
-
-          # 插件全部 =m 不占用固件空间
-          echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
-
-          echo "CONFIG_PACKAGE_luci-compat=y" >> .config
-          echo "CONFIG_PACKAGE_luci-base=y" >> .config
-
-          echo "" >> .config
-          echo "# OpenClash 依赖（OpenSSL 3.0）" >> .config
-          echo "CONFIG_PACKAGE_openssl=y" >> .config
-          echo "CONFIG_PACKAGE_coreutils=m" >> .config
-          echo "CONFIG_PACKAGE_coreutils-nohup=m" >> .config
-          echo "CONFIG_PACKAGE_bash=m" >> .config
-          echo "CONFIG_PACKAGE_jsonfilter=m" >> .config
-          echo "CONFIG_PACKAGE_ca-certificates=m" >> .config
-
-          echo "" >> .config
-          echo "# PassWall2 依赖（使用 OpenSSL 3.0）" >> .config
-          echo "CONFIG_PACKAGE_passwall2=m" >> .config
-          echo "CONFIG_PACKAGE_xray-core=m" >> .config
-          echo "CONFIG_PACKAGE_xray-plugin=m" >> .config
-          echo "CONFIG_PACKAGE_sing-box=m" >> .config
-          echo "CONFIG_PACKAGE_hysteria=m" >> .config
-          
-          # 🔥 🔥 🔥 这里关闭 naiveproxy 解决 404 错误 🔥 🔥 🔥
-          echo "CONFIG_PACKAGE_naiveproxy=n" >> .config
-          echo "CONFIG_PACKAGE_passwall2_naiveproxy=n" >> .config
-          
-          echo "CONFIG_PACKAGE_tuic-client=m" >> .config
-          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-redir=m" >> .config
-          echo "CONFIG_PACKAGE_shadowsocks-libev-ss-tunnel=m" >> .config
-          echo "CONFIG_PACKAGE_shadowsocksr-libev-ssr-redir=m" >> .config
-
-          echo "" >> .config
-          echo "# 必须集成内核模块" >> .config
-          echo "CONFIG_PACKAGE_kmod-tun=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-inet-diag=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-nf-tproxy=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-ipt-tproxy=y" >> .config
-
-          echo "" >> .config
-          echo "# 必要工具" >> .config
-          echo "CONFIG_PACKAGE_iptables=y" >> .config
-          echo "CONFIG_PACKAGE_iptables-mod-tproxy=y" >> .config
-          echo "CONFIG_PACKAGE_curl=y" >> .config
-          echo "CONFIG_PACKAGE_unzip=y" >> .config
-          echo "CONFIG_PACKAGE_ca-bundle=y" >> .config
-
-          echo "" >> .config
-          echo "# 辅助组件" >> .config
-          echo "CONFIG_PACKAGE_ipset=m" >> .config
-          echo "CONFIG_PACKAGE_libcap=m" >> .config
-          echo "CONFIG_PACKAGE_libstdcpp=y" >> .config
-
-          echo "" >> .config
-          echo "# DNS 配置" >> .config
-          echo "CONFIG_PACKAGE_dnsmasq-full=y" >> .config
-          echo "CONFIG_PACKAGE_dnsmasq=n" >> .config
-
-          echo "" >> .config
-          echo "# WEB挂载点" >> .config
-          echo "CONFIG_PACKAGE_luci-mod-system=y" >> .config
-          echo "CONFIG_PACKAGE_luci-mod-system-mountpoints=y" >> .config
-          echo "CONFIG_PACKAGE_block-mount=y" >> .config
-
+          echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           make defconfig -j$(nproc)
           
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
