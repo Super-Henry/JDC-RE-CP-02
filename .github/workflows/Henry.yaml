@@ -73,9 +73,10 @@ jobs:
 
       - name: Update and install feeds
         run: |
-          df -h
-
+          df -hT
           #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
+          ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
+          # passwall2 argon openclash oaf
           git clone https://github.com/Super-Henry/Openwrt-Passwall2.git package/feeds/luci/luci-app-passwall2
           git clone https://github.com/Super-Henry/Openwrt-Passwall-Packages.git package/utils/passwall2
           git clone https://github.com/jerrykuku/luci-theme-argon.git package/feeds/luci/luci-theme-argon
@@ -85,14 +86,19 @@ jobs:
           #git clone https://github.com/im-0/openwrt-package.vlmcsd.git package/utils/vlmcsd
           #git clone https://github.com/sbwml/openwrt-qBittorrent package/feeds/qBittorrent
           unzip builder_repo/luci-app-accesscontrol.zip -d package/feeds/luci/applications
+
+          # ===================== 新增 OpenAppFilter =====================
+          git clone https://github.com/Super-Henry/OpenAppFilter.git package/OpenAppFilter
+          # ==============================================================
+
           # fix the passwall2 Makefile
           sed -i -e '/^endchoice/i\\n\tconfig PACKAGE_$(PKG_NAME)_Basic_Core_None\n\t\tbool "None"' package/feeds/luci/luci-app-passwall2/luci-app-passwall2/Makefile
-          ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
 
       - name: Setup configuration and custom files
         run: |
-          df -h
-          mv builder_repo/${{ env.CONFIG_FILE }} .config        
+          df -hT
+          mv builder_repo/${{ env.CONFIG_FILE }} .config
+          make defconfig -j$(nproc)
           # ==============================================
           # 已改回 软浮点 完美适配官方架构
           # ==============================================
@@ -117,16 +123,23 @@ jobs:
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
 
-          # 插件全部 =m 不占用固件空间
+          # 插件全部 apk方式 不占用固件空间
           echo "CONFIG_PACKAGE_luci-app-openclash=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
+
+          # ===================== OAF完整三套模块化编译配置 =m 输出全部离线APK =====================
+          echo "CONFIG_PACKAGE_luci-app-oaf=m" >> .config
+          echo "CONFIG_PACKAGE_oaf=m" >> .config
+          echo "CONFIG_PACKAGE_kmod-open-app-filter=m" >> .config
+
 
           echo "CONFIG_PACKAGE_luci-compat=y" >> .config
           echo "CONFIG_PACKAGE_luci-base=y" >> .config
 
           echo "" >> .config
           echo "# OpenClash 依赖（OpenSSL 3.0）" >> .config
-          echo "CONFIG_PACKAGE_openssl=y" >> .config
+          echo "CONFIG_PACKAGE_openclash=m" >> .config
+          echo "CONFIG_PACKAGE_openssl=m" >> .config
           echo "CONFIG_PACKAGE_coreutils=m" >> .config
           echo "CONFIG_PACKAGE_coreutils-nohup=m" >> .config
           echo "CONFIG_PACKAGE_bash=m" >> .config
@@ -182,7 +195,8 @@ jobs:
           echo "CONFIG_PACKAGE_luci-mod-system-mountpoints=y" >> .config
           echo "CONFIG_PACKAGE_block-mount=y" >> .config
 
-          make defconfig -j$(nproc)
+          # 最后再运行一次 oldconfig 确保依赖正确
+          make oldconfig
           
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
@@ -198,12 +212,14 @@ jobs:
           echo "编译源码提交: ${{ needs.check_commits.outputs.latest_commit_sha }}" >> files/etc/build_time
 
       - name: Use /mnt for more disk space
+          #把源码目录挂载到 /mnt 大容量分区，解决 GitHub 默认磁盘空间不足、编译中途报磁盘满的问题  
+        if: always()
         run: |
           sudo mkdir -p /mnt/upper /mnt/work && sudo chmod a+w /mnt/upper
           sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd)
           df -h
 
-      - name: cache
+      - name: Restore cache from previous build
         uses: actions/cache@v4
         if: always()
         with:
@@ -226,15 +242,15 @@ jobs:
             gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" 2>/dev/null || true
           done
 
-      - name: Download source
+      - name: Download packages
         run: |
-          df -h
+          df -hT
           ./scripts/feeds update -a
           make download -j$(nproc)
 
       - name: Build firmware
         run: |
-          df -h
+          df -hT
           make check -j$(nproc) FIXUP=1 V=s
           make -j$(nproc) || make -j1 V=s  # Retry single-threaded on failure
           tar cvzf bin/targets/ramips/mt7621/snapshots.tar.gz -C bin packages/mipsel_24kc targets/ramips/mt7621/packages
@@ -250,6 +266,12 @@ jobs:
           echo ""
           echo "检查 Argon 主题相关包..."
           find bin/ -name "*.ipk" | grep -E "(argon)" || echo "⚠️ 未找到 Argon 主题包"
+          echo ""
+          echo "=== 检查完整OAF三套编译产物 ==="
+          find bin/ -name "oaf_*.ipk" && echo "✅ oaf后台服务包存在" || echo "❌ oaf后台服务包缺失"
+          find bin/ -name "kmod-oaf_*.ipk" && echo "✅ kmod-oaf内核模块存在" || echo "❌ kmod-oaf内核模块缺失"
+          find bin/ -name "luci-app-oaf_*.ipk" && echo "✅ luci-app-oaf面板包存在" || echo "❌ luci-app-oaf面板包缺失"
+
           echo "=== 验证完成 ==="
 
       - name: Upload artifacts
@@ -260,7 +282,7 @@ jobs:
 
       - name: Check disk space usage
         if: always()
-        run: df -h
+        run: df -hT
 
   release:
     name: Create release
@@ -304,9 +326,11 @@ jobs:
             - Passwall2 全套 (OpenSSL 3.0)
             - OpenClash 全套 (OpenSSL 3.0)
             - Argon 主题 + 配置
+            - OpenAppFilter(OAF) 七层DPI应用管控过滤
 
             ### 📋 Notes
             - Automated build triggered by ${{ github.event_name }}
+            - Previous releases are automatically cleaned up (keeping latest 5)
             - 插件均为离线 APK，刷机后需手动安装
             - 固件本身小于 16MB
             ---
@@ -318,7 +342,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api repos/${{ github.repository }}/releases --paginate --jq '.[5:] | .[] | "\(.id) \(.tag_name)"' | while read id tag; do
+          df -hT
+          gh api repos/${{ github.repository }}/releases --paginate --jq '.[5:10] | .[] | "\(.id) \(.tag_name)"' | while read id tag; do
             day=$(echo "$tag" |cut -d'-' -f4)
             if [ $day -ne "01" ] && [ $day -ne "08" ] && [ $day -ne "15" ] && [ $day -ne "23" ]; then
               echo "Removing old release $tag ..."
