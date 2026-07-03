@@ -53,7 +53,6 @@ jobs:
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
           ref: ${{ env.REMOTE_BRANCH }}
-          fetch-tags: true
 
       - name: Checkout current repository
         uses: actions/checkout@v4
@@ -73,8 +72,7 @@ jobs:
 
       - name: Update and install feeds
         run: |
-          df -h
-
+          df -hT
           #echo 'src-git custom https://github.com/kiddin9/kwrt-packages' >> feeds.conf.default
           ./scripts/feeds update -a && ./scripts/feeds install -a -p luci && ./scripts/feeds install -a -p packages
           git clone https://github.com/Super-Henry/Openwrt-Passwall2.git package/feeds/luci/luci-app-passwall2
@@ -91,11 +89,18 @@ jobs:
 
       - name: Setup configuration and custom files
         run: |
-          df -h
+          df -hT
           mv builder_repo/${{ env.CONFIG_FILE }} .config
+          make defconfig -j$(nproc)
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
-          make defconfig -j$(nproc)
+          # 仅新增此行，解决 fwx_dashboard 404，其余代码完全不动
+          echo "CONFIG_PACKAGE_luci-app-firewall-dashboard=y" >> .config
+          echo "CONFIG_PACKAGE_luci-compat=y" >> .config
+          echo "CONFIG_PACKAGE_luci-base=y" >> .config
+          echo "CONFIG_PACKAGE_luci-theme-fanchmwrt=n" >> .config
+          # 最后再运行一次 oldconfig 确保依赖正确
+          make oldconfig
           
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && mv builder_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }} || true
@@ -111,12 +116,14 @@ jobs:
           echo "编译源码提交: ${{ needs.check_commits.outputs.latest_commit_sha }}" >> files/etc/build_time
 
       - name: Use /mnt for more disk space
+          #把源码目录挂载到 /mnt 大容量分区，解决 GitHub 默认磁盘空间不足、编译中途报磁盘满的问题  
+        if: always()
         run: |
           sudo mkdir -p /mnt/upper /mnt/work && sudo chmod a+w /mnt/upper
           sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd)
           df -h
 
-      - name: cache
+      - name: Restore cache from previous build
         uses: actions/cache@v4
         if: always()
         with:
@@ -139,15 +146,15 @@ jobs:
             gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" 2>/dev/null || true
           done
 
-      - name: Download source
+      - name: Download packages
         run: |
-          df -h
+          df -hT
           ./scripts/feeds update -a
           make download -j$(nproc)
 
       - name: Build firmware
         run: |
-          df -h
+          df -hT
           make check -j$(nproc) FIXUP=1 V=s
           make -j$(nproc) || make -j1 V=s  # Retry single-threaded on failure
           tar cvzf bin/targets/ramips/mt7621/snapshots.tar.gz -C bin packages/mipsel_24kc targets/ramips/mt7621/packages
@@ -173,7 +180,7 @@ jobs:
 
       - name: Check disk space usage
         if: always()
-        run: df -h
+        run: df -hT
 
   release:
     name: Create release
@@ -220,6 +227,7 @@ jobs:
 
             ### 📋 Notes
             - Automated build triggered by ${{ github.event_name }}
+            - Previous releases are automatically cleaned up (keeping latest 5)
             - 插件均为离线 APK，刷机后需手动安装
             - 固件本身小于 16MB
             ---
@@ -231,6 +239,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          df -hT
           gh api repos/${{ github.repository }}/releases --paginate --jq '.[5:] | .[] | "\(.id) \(.tag_name)"' | while read id tag; do
             day=$(echo "$tag" |cut -d'-' -f4)
             if [ $day -ne "01" ] && [ $day -ne "08" ] && [ $day -ne "15" ] && [ $day -ne "23" ]; then
